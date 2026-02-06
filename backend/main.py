@@ -2,7 +2,7 @@ import os, json, uuid, time
 from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from pydantic import BaseModel
 from typing import Optional
 import httpx
@@ -22,6 +22,7 @@ ALLOWED_ORIGINS = [
     "http://168.231.87.2:3000",
     "http://168.231.87.2",
     "http://localhost:3000",
+    "http://localhost:8000",
     "https://mysql-staffing-recently-contractors.trycloudflare.com",
 ]
 
@@ -705,3 +706,11 @@ async def get_history(session_id: str):
 @app.get("/sessions")
 async def list_sessions():
     return {"sessions": list(sessions.keys()), "count": len(sessions)}
+
+
+import pathlib
+_FRONTEND_HTML = pathlib.Path(__file__).resolve().parent.parent / "frontend" / "goose-advisor-voice.html"
+
+@app.get("/")
+async def serve_frontend():
+    return FileResponse(_FRONTEND_HTML, media_type="text/html")
