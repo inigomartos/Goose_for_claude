@@ -22,6 +22,7 @@ ALLOWED_ORIGINS = [
     "http://168.231.87.2:3000",
     "http://168.231.87.2",
     "http://localhost:3000",
+    "https://mysql-staffing-recently-contractors.trycloudflare.com",
 ]
 
 app.add_middleware(
