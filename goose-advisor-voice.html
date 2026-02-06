@@ -251,7 +251,7 @@ function App(){
         ),
         e("button",{onClick:function(){setPage("advisor");setShowSignUp(false)},style:{background:"#2D6A4F",color:"#fff",border:"none",fontFamily:"'Outfit',sans-serif",fontSize:13,fontWeight:600,padding:"10px 22px",borderRadius:50,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:7}},e(PhoneIcon,{s:14,c:"#fff"}),"Talk to Advisor")
       ),
-      e("nav",{style:{display:"flex",gap:24}},nb("invest","Investments"),nb("how","How It Works"),nb("portfolio","My Portfolio"),nb("advisor","AI Advisor"))
+      e("nav",{style:{display:"flex",gap:24,overflowX:"auto"},className:"hs"},nb("invest","Investments"),nb("how","How It Works"),nb("portfolio","My Portfolio"),nb("advisor","AI Advisor"),nb("modelcard","Model Card"))
     )
   );
 
@@ -510,6 +510,298 @@ function App(){
     );
   }
 
+  // ── MODEL CARD & RISK ANALYSIS PAGE ──
+  function modelCardPage(){
+    function mc(title,color){return e("div",{style:{fontSize:11,fontWeight:600,letterSpacing:1,textTransform:"uppercase",color:color||"#2D6A4F",marginBottom:12}},title)}
+    function card(children){return e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:16,padding:22,marginBottom:16}},children)}
+    function row(label,value,sub){return e("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"8px 0",borderBottom:"1px solid #F2F0EA"}},e("div",null,e("span",{style:{fontSize:13,fontWeight:500}},label),sub?e("div",{style:{fontSize:11,color:"#aaa",marginTop:2}},sub):null),e("span",{className:"mn",style:{fontSize:12.5,fontWeight:600,color:"#264653",textAlign:"right",maxWidth:"55%"}},value))}
+    function risk(level,title,desc,mitigation){
+      var colors={Critical:"#DC2626",High:"#EA580C",Medium:"#D97706",Low:"#2D6A4F"};
+      var bg={Critical:"#FEF2F2",High:"#FFF7ED",Medium:"#FFFBEB",Low:"#F0FDF4"};
+      var bc={Critical:"#FECACA",High:"#FED7AA",Medium:"#FDE68A",Low:"#BBF7D0"};
+      return e("div",{style:{padding:"14px 16px",background:bg[level],border:"1px solid "+bc[level],borderRadius:10,marginBottom:8}},
+        e("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:6}},
+          e("span",{style:{display:"inline-block",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:colors[level],color:"#fff",letterSpacing:.4}},level.toUpperCase()),
+          e("span",{style:{fontSize:13,fontWeight:600,color:"#333"}},title)
+        ),
+        e("p",{style:{fontSize:12.5,color:"#555",lineHeight:1.6,margin:"0 0 6px"}},desc),
+        e("div",{style:{fontSize:12,color:colors[level],fontWeight:500}},"Mitigation: "+mitigation)
+      )
+    }
+    function scoringRow(question,options,scores,max){
+      return e("div",{style:{marginBottom:12}},
+        e("div",{style:{fontSize:12.5,fontWeight:600,color:"#333",marginBottom:4}},question),
+        e("div",{style:{display:"flex",flexWrap:"wrap",gap:4}},
+          options.map(function(opt,i){return e("span",{key:i,style:{display:"inline-block",fontSize:10.5,padding:"3px 8px",borderRadius:6,background:i===scores.length-1?"#264653":"#F6F5F0",color:i===scores.length-1?"#fff":"#777",border:"1px solid "+(i===scores.length-1?"#264653":"#E0DDD5")}},opt+" ("+scores[i]+"pt"+(scores[i]!==1?"s":"")+")")})
+        )
+      )
+    }
+
+    return e("div",{style:{animation:"fadeIn .4s ease"}},
+      // Title
+      e("div",{style:{marginBottom:24}},
+        e("h1",{className:"sf",style:{fontSize:26,fontWeight:700,lineHeight:1.2,letterSpacing:-.5,marginBottom:6}},"Model Card & ",e("span",{style:{color:"#2D6A4F"}},"Risk Analysis")),
+        e("p",{style:{fontSize:13.5,color:"#999",lineHeight:1.6}},"Comprehensive explainability documentation for regulatory review. This page details the AI system architecture, decision-making methodology, scoring logic, identified risks, and mitigation strategies.")
+      ),
+
+      // 1. System Identity
+      card([
+        mc("1. System Identity & Architecture"),
+        row("System name","Goose AI Financial Advisor"),
+        row("Version","1.0.0 (Demo)"),
+        row("Primary model","Meta Llama 3.1 8B","Open-source, Apache 2.0 licensed"),
+        row("Model host","Ollama on-premises VPS","CPU inference, no cloud dependency"),
+        row("Infrastructure","Hostinger VPS (Ubuntu 24.04)","32 GB RAM, CPU-only"),
+        row("Voice interface","ElevenLabs Conversational AI","Speech-to-text + text-to-speech only"),
+        row("Backend","FastAPI (Python)","Routing, audit logging, profile calculation"),
+        row("Regulatory basis","MiFID II Directive 2014/65/EU","Delegated Regulation 2017/565"),
+        row("Data residency","All data stays on-premises","No data sent to external AI providers"),
+        e("div",{style:{marginTop:14,padding:"12px 14px",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8}},
+          e("div",{style:{fontSize:12,fontWeight:600,color:"#166534",marginBottom:4}},"Key architectural principle"),
+          e("p",{style:{fontSize:12,color:"#15803D",lineHeight:1.6,margin:0}},"The LLM (Llama 3.1) acts exclusively as a conversational interface. It collects answers through natural dialogue. All scoring, profile calculation, restrictions, and investment recommendations are computed by deterministic, auditable Python code on the server. The LLM never decides the investor profile.")
+        )
+      ]),
+
+      // 2. Decision-Making Architecture
+      card([
+        mc("2. Decision-Making Architecture"),
+        e("div",{style:{fontSize:13,color:"#555",lineHeight:1.7,marginBottom:16}},"The system separates AI from decision-making. This two-layer architecture ensures that every output is traceable and reproducible:"),
+        e("div",{style:{display:"flex",gap:12,marginBottom:16,flexWrap:"wrap"}},
+          [{title:"Layer 1: LLM (Non-Deterministic)",color:"#E76F51",items:["Conducts the conversation","Asks questions one at a time","Interprets natural-language answers","Maps answers to structured data","Presents results conversationally"]},
+           {title:"Layer 2: Scoring Engine (Deterministic)",color:"#2D6A4F",items:["Calculates block scores from structured answers","Applies regulatory restrictions (age, income, knowledge)","Runs coherence checks for contradictions","Determines final investor profile","Maps to asset allocation and product list"]}
+          ].map(function(layer){
+            return e("div",{key:layer.title,style:{flex:1,minWidth:200,padding:16,background:layer.color+"08",border:"1px solid "+layer.color+"20",borderRadius:12}},
+              e("div",{style:{fontSize:12,fontWeight:600,color:layer.color,marginBottom:8}},layer.title),
+              layer.items.map(function(item,i){return e("div",{key:i,style:{display:"flex",alignItems:"center",gap:6,padding:"3px 0"}},e("div",{style:{width:5,height:5,borderRadius:3,background:layer.color,flexShrink:0}}),e("span",{style:{fontSize:12,color:"#555"}},item))})
+            )
+          })
+        ),
+        e("div",{style:{padding:"12px 14px",background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:8}},
+          e("div",{style:{fontSize:12,fontWeight:600,color:"#92400E",marginBottom:4}},"Why this matters for regulators"),
+          e("p",{style:{fontSize:12,color:"#A16207",lineHeight:1.6,margin:0}},"Because the scoring engine is entirely deterministic, given the same inputs it will always produce the same profile, allocation, and product recommendations. The LLM's role is limited to communication. If the LLM were replaced with a web form collecting the same answers, the profile result would be identical. This means the AI component can fail without producing incorrect financial recommendations \u2014 it can only fail to collect answers.")
+        )
+      ]),
+
+      // 3. Scoring Methodology
+      card([
+        mc("3. Scoring Methodology \u2014 Full Transparency"),
+        e("div",{style:{fontSize:13,color:"#555",lineHeight:1.7,marginBottom:16}},"The suitability assessment follows a 6-block questionnaire. Blocks 2\u20135 are scored numerically (total 75 points). Block 1 applies restrictions without scoring. Block 6 records ESG preferences."),
+
+        e("div",{style:{marginBottom:20}},
+          e("div",{style:{fontSize:13,fontWeight:600,color:"#264653",marginBottom:10}},"Profile Score Ranges"),
+          e("div",{style:{display:"flex",flexDirection:"column",gap:4}},
+            [{p:"Very Conservative",r:"0\u201315",c:"#166534"},{p:"Conservative",r:"16\u201330",c:"#15803D"},{p:"Moderate Conservative",r:"31\u201342",c:"#4D7C0F"},{p:"Moderate",r:"43\u201353",c:"#CA8A04"},{p:"Moderate Aggressive",r:"54\u201364",c:"#EA580C"},{p:"Aggressive",r:"65\u201375",c:"#DC2626"}].map(function(pr){
+              return e("div",{key:pr.p,style:{display:"flex",alignItems:"center",gap:10}},
+                e("div",{style:{width:100,textAlign:"right"}},e("span",{className:"mn",style:{fontSize:11,fontWeight:600,color:pr.c}},pr.r)),
+                e("div",{style:{flex:1,height:8,background:"#ECEAE3",borderRadius:8,overflow:"hidden"}},
+                  e("div",{style:{width:Math.min(100,parseInt(pr.r.split("\u2013")[1])/75*100)+"%",height:"100%",background:pr.c,borderRadius:8}})
+                ),
+                e("span",{style:{fontSize:11.5,fontWeight:500,color:"#555",minWidth:130}},pr.p)
+              )
+            })
+          )
+        ),
+
+        e("div",{style:{marginBottom:16}},
+          e("div",{style:{fontSize:13,fontWeight:600,color:"#264653",marginBottom:10}},"Block 1: Personal Details (restrictions only, no score)"),
+          e("p",{style:{fontSize:12,color:"#777",lineHeight:1.6,marginBottom:8}},"This block does not contribute to the numerical score. Instead, it applies hard regulatory caps:"),
+          e("div",{style:{display:"flex",flexDirection:"column",gap:4}},
+            [{rule:"Age \u2265 61",effect:"Max profile capped at Moderate"},{rule:"Unemployed or Student",effect:"Max profile capped at Moderate Conservative"},{rule:"3+ dependents",effect:"Profile reduced by one level"}].map(function(r,i){
+              return e("div",{key:i,style:{display:"flex",gap:8,padding:"6px 10px",background:"#FEF3EC",borderRadius:6}},
+                e("span",{style:{fontSize:12,fontWeight:600,color:"#C4320A",minWidth:140}},r.rule),
+                e("span",{style:{fontSize:12,color:"#9A3412"}},r.effect)
+              )
+            })
+          )
+        ),
+
+        e("div",{style:{marginBottom:16}},
+          e("div",{style:{fontSize:13,fontWeight:600,color:"#264653",marginBottom:10}},"Block 2: Financial Situation (max 22 points)"),
+          scoringRow("Q2.1 Annual net income",["<15K","15-30K","30-60K","60-100K",">100K"],[1,2,3,4,5]),
+          scoringRow("Q2.2 Financial assets",["<10K","10-50K","50-150K","150-500K",">500K"],[1,2,3,4,5]),
+          scoringRow("Q2.3 Fixed expenses ratio",[">70%","50-70%","30-49%","<30%"],[1,2,3,4]),
+          scoringRow("Q2.4 Emergency fund",["None","1-3mo","3-6mo",">6mo"],[1,2,3,4]),
+          scoringRow("Q2.5 Outstanding debts",["Significant","Manageable","Small","None"],[1,2,3,4]),
+          e("div",{style:{fontSize:11,color:"#E76F51",fontWeight:500,padding:"4px 0"}},"Restriction: If Block 2 score < 8, max profile = Conservative")
+        ),
+
+        e("div",{style:{marginBottom:16}},
+          e("div",{style:{fontSize:13,fontWeight:600,color:"#264653",marginBottom:10}},"Block 3: Knowledge & Experience (max 16 points)"),
+          scoringRow("Q3.1 Financial education",["None","Basic","University","Certified"],[1,2,3,4]),
+          scoringRow("Q3.2 Products traded (3yr)",["Deposits","Funds/pensions","Stocks/ETFs","Derivatives"],[1,2,3,4]),
+          scoringRow("Q3.3 Trading frequency",["Never","Few/year","Several/year","Monthly+"],[1,2,3,4]),
+          scoringRow("Q3.4 Understands equity risk",["No","Somewhat","Yes"],[0,1,2]),
+          scoringRow("Q3.5 Understands diversification",["No","Somewhat","Yes"],[0,1,2]),
+          e("div",{style:{fontSize:11,color:"#E76F51",fontWeight:500,padding:"4px 0"}},"Restriction: If Block 3 score < 5, max profile = Moderate Conservative")
+        ),
+
+        e("div",{style:{marginBottom:16}},
+          e("div",{style:{fontSize:13,fontWeight:600,color:"#264653",marginBottom:10}},"Block 4: Investment Objectives (max 20 points)"),
+          scoringRow("Q4.1 Main objective",["Preserve","Income","Growth","Maximize"],[1,2,3,4]),
+          scoringRow("Q4.2 Time horizon",["<1yr","1-3yr","3-7yr",">7yr"],[1,2,3,4]),
+          scoringRow("Q4.3 % assets to invest",["<10%","10-25%","26-50%",">50%"],[4,3,2,1]),
+          scoringRow("Q4.4 Expected return",["2-3%","4-6%","7-10%",">10%"],[1,2,3,4]),
+          scoringRow("Q4.5 Liquidity needs",["Anytime","1-2yr","3-5yr","None"],[1,2,3,4]),
+          e("div",{style:{fontSize:11,color:"#999",fontStyle:"italic",padding:"4px 0"}},"Note: Q4.3 uses inverse scoring \u2014 investing a smaller % of assets is safer, scoring higher for prudence"),
+          e("div",{style:{fontSize:11,color:"#E76F51",fontWeight:500,padding:"4px 0"}},"Restriction: If time horizon < 1 year, max profile = Moderate")
+        ),
+
+        e("div",{style:{marginBottom:16}},
+          e("div",{style:{fontSize:13,fontWeight:600,color:"#264653",marginBottom:10}},"Block 5: Risk Tolerance (max 17 points)"),
+          scoringRow("Q5.1 Reaction to -10% loss",["Sell all","Sell part","Wait","Buy more"],[1,2,3,4]),
+          scoringRow("Q5.2 Max acceptable annual loss",["0%","5%","15%","25%",">25%"],[1,2,3,4,5]),
+          scoringRow("Q5.3 Comfort with 20% fluctuation",["Very uncomfortable","Worried","Normal","Not concerned"],[1,2,3,4]),
+          scoringRow("Q5.4 Risk/return preference",["No losses","Small losses","Accept losses","High risk"],[1,2,3,4]),
+          e("div",{style:{fontSize:11,color:"#D97706",fontWeight:500,padding:"4px 0"}},"Coherence check: If Q5.2=0% AND Q5.4\u2265'Accept losses', inconsistency flagged for human review")
+        ),
+
+        e("div",null,
+          e("div",{style:{fontSize:13,fontWeight:600,color:"#264653",marginBottom:10}},"Block 6: ESG / Sustainability (no score)"),
+          e("p",{style:{fontSize:12,color:"#777",lineHeight:1.6}},"If the client has sustainability preferences, the system records their preferred framework (EU Taxonomy, PAI, or SFDR Article 8/9) and minimum sustainable investment percentage. This information is included in the recommendation but does not affect the risk profile score.")
+        )
+      ]),
+
+      // 4. LLM Model Specification
+      card([
+        mc("4. LLM Model Specification"),
+        row("Model","Meta Llama 3.1 8B (Instruct)","Released July 2024"),
+        row("Parameters","8 billion"),
+        row("Training data","Publicly available internet data up to Dec 2023","See Meta's Llama 3.1 Model Card"),
+        row("Quantization","Q4_0 (4-bit)","Reduced from 16-bit for CPU inference"),
+        row("Context window","128,000 tokens"),
+        row("License","Llama 3.1 Community License","Permissive, allows commercial use"),
+        row("Inference","CPU-only (no GPU)","~10-30s per response, cold start ~90s"),
+        row("Host","Ollama runtime","localhost:11434, never internet-exposed"),
+        row("System prompt","Fixed MiFID II advisor prompt","693 tokens, not modifiable by users"),
+        row("Temperature","Default (0.7)","Moderate creativity in phrasing"),
+        row("Keep-alive","30 minutes","Model stays loaded between requests"),
+        e("div",{style:{marginTop:14,padding:"12px 14px",background:"#F6F5F0",borderRadius:8}},
+          e("div",{style:{fontSize:12,fontWeight:600,color:"#333",marginBottom:4}},"What the LLM does NOT do"),
+          e("div",{style:{display:"flex",flexDirection:"column",gap:3}},
+            ["Does not calculate investor profiles (deterministic engine does this)","Does not access the internet or retrieve live data","Does not store or persist user data between sessions","Does not have access to real financial accounts or transactions","Does not make buy/sell/trade recommendations beyond demo products","Does not process payment information"].map(function(item,i){
+              return e("div",{key:i,style:{display:"flex",alignItems:"center",gap:6}},
+                e("span",{style:{color:"#DC2626",fontSize:12,fontWeight:700}},"\u2717"),
+                e("span",{style:{fontSize:12,color:"#555"}},item)
+              )
+            })
+          )
+        )
+      ]),
+
+      // 5. Risk Analysis
+      card([
+        mc("5. Risk Analysis","#DC2626"),
+        e("div",{style:{fontSize:13,color:"#555",lineHeight:1.7,marginBottom:16}},"The following risks have been identified through systematic testing and analysis. Each risk is categorized by severity and includes the implemented mitigation strategy."),
+
+        e("div",{style:{fontSize:12,fontWeight:600,color:"#264653",marginBottom:10,marginTop:8}},"5.1 LLM-Related Risks"),
+        risk("High","Hallucination / Fabricated Information","The LLM may generate plausible-sounding but incorrect financial information, fabricate product names, invent statistics, or provide misleading explanations. As an 8B parameter model, it is more prone to hallucination than larger models.","All investment decisions are made by the deterministic scoring engine, not the LLM. The LLM's role is limited to conversation. A disclaimer is displayed at all times. The system prompt explicitly instructs the model to not provide financial advice beyond the assessment script."),
+        risk("High","Answer Misinterpretation","The LLM may incorrectly map a natural-language answer to a structured questionnaire option. For example, 'I have some savings' might be mapped to any of the financial asset ranges, leading to an incorrect profile.","The current system relies on the LLM's interpretation. A production system should implement confirmation prompts for each answer and structured answer validation. This is identified as a key area for improvement."),
+        risk("Medium","Prompt Injection","A user could attempt to override the system prompt to extract internal instructions, bypass the assessment flow, or make the system provide unqualified financial advice.","The system prompt is fixed server-side and includes behavioral rules. The model is instructed to stay in character. However, 8B models have weaker instruction-following than larger models. Rate limiting (20 req/min) reduces abuse potential."),
+        risk("Medium","Language & Cultural Bias","Llama 3.1 was trained primarily on English internet data. It may perform inconsistently for non-English speakers, and its understanding of European financial products and regulations may be less accurate than US-centric knowledge.","The system prompt explicitly references MiFID II and Spanish context. The deterministic scoring engine handles all regulatory logic. However, conversational quality may vary by user background."),
+        risk("Low","Model Drift / Non-Determinism","The LLM may produce different conversational paths for identical inputs due to temperature sampling. While the scoring engine is deterministic, the quality of answer collection may vary.","Temperature is set to default (0.7). The same structured answers always produce the same profile. Only the conversational path varies, not the outcome."),
+
+        e("div",{style:{fontSize:12,fontWeight:600,color:"#264653",marginBottom:10,marginTop:20}},"5.2 System-Level Risks"),
+        risk("Critical","Not Suitable for Real Financial Advice","This is a demonstration system. It has not been validated by financial regulators, certified financial advisors, or compliance teams. The scoring weights are illustrative, not calibrated to real regulatory standards.","Clear 'DEMO ONLY' disclaimers on every page and in every profile result. The system explicitly states it is not financial advice."),
+        risk("High","No Human-in-the-Loop","There is no mechanism for a licensed financial advisor to review the AI's assessment before it reaches the client. MiFID II compliance in production requires human oversight.","For production deployment, a review queue where human advisors verify flagged assessments (especially those with coherence warnings or restrictions) would be required."),
+        risk("Medium","In-Memory Data Loss","Audit logs and session data are stored in-memory only. A server restart erases all records. In a regulated environment, audit trails must be persistent and tamper-proof.","For production: implement persistent database storage (PostgreSQL), immutable audit logs, and backup procedures. Current demo accepts this limitation."),
+        risk("Medium","Single-Point-of-Failure Infrastructure","The system runs on a single VPS with no redundancy. Ollama CPU inference is slow (~10-30s per response). The system cannot handle concurrent load effectively.","Acceptable for demo. Production would require load balancing, GPU inference, and high-availability deployment."),
+        risk("Low","ElevenLabs Voice Privacy","Voice audio is processed by ElevenLabs (third-party, US-based). Speech-to-text conversion happens externally. This means voice data leaves the on-premises environment.","The text chat pathway is fully on-premises. Users are informed that voice mode uses a third-party service. For maximum data sovereignty, only text chat should be used."),
+
+        e("div",{style:{fontSize:12,fontWeight:600,color:"#264653",marginBottom:10,marginTop:20}},"5.3 Regulatory Compliance Gaps (vs. Production MiFID II)"),
+        e("div",{style:{display:"flex",flexDirection:"column",gap:6}},
+          [{gap:"Client identification & KYC",status:"Not implemented",note:"Demo does not verify identity"},{gap:"Record retention (5+ years)",status:"Not implemented",note:"In-memory only, lost on restart"},{gap:"Best execution obligations",status:"N/A",note:"No real trades executed"},{gap:"Conflict of interest disclosure",status:"Partial",note:"Disclaimer present, no detailed disclosure"},{gap:"Complaints handling procedure",status:"Not implemented",note:"No formal process"},{gap:"Annual suitability review",status:"Not implemented",note:"Assessment is one-time"},{gap:"Data protection (GDPR Art. 35 DPIA)",status:"Not implemented",note:"No data processing impact assessment"},{gap:"Supervisory reporting",status:"Not implemented",note:"No regulator reporting pipeline"}].map(function(g,i){
+            return e("div",{key:i,style:{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:g.status==="Not implemented"?"#FEF2F2":"#FFFBEB",borderRadius:8}},
+              e("span",{style:{fontSize:11,fontWeight:600,color:g.status==="Not implemented"?"#DC2626":"#D97706",minWidth:60}},g.status==="Not implemented"?"\u2717 Missing":"\u26A0 Partial"),
+              e("span",{style:{fontSize:12,fontWeight:500,color:"#333",minWidth:180}},g.gap),
+              e("span",{style:{fontSize:11,color:"#777"}},g.note)
+            )
+          })
+        )
+      ]),
+
+      // 6. Audit & Explainability Features
+      card([
+        mc("6. Implemented Explainability Features"),
+        e("div",{style:{fontSize:13,color:"#555",lineHeight:1.7,marginBottom:16}},"The following explainability mechanisms are currently implemented and available via the Audit Trail on the AI Advisor page:"),
+        e("div",{style:{display:"flex",flexDirection:"column",gap:8}},
+          [{f:"Full scoring breakdown",d:"Every question's answer, the score assigned, and the maximum possible score are recorded and displayed"},{f:"Block-level scores",d:"Each of the 4 scored blocks shows its subtotal vs. maximum (e.g., 14/22 for Financial Situation)"},{f:"Restriction tracing",d:"When a regulatory rule caps or reduces the profile, the specific rule, reason, and effect are documented"},{f:"Coherence detection",d:"Contradictory answers (e.g., 0% loss tolerance + high risk preference) are flagged automatically"},{f:"Profile adjustment log",d:"If the raw profile differs from the final profile, every adjustment step is recorded with explanation"},{f:"LLM call logging",d:"Every call to the LLM is logged with timestamp, message count, response snippet, and tool call status"},{f:"Session history",d:"Full conversation transcripts are retained for the duration of the session"},{f:"Asset allocation rationale",d:"Each profile maps to a fixed, pre-defined allocation table \u2014 not AI-generated"},{f:"Product recommendations",d:"Suitable products are drawn from a curated, pre-defined list per profile \u2014 not AI-generated"},{f:"Disclaimer enforcement",d:"Every profile result includes regulatory disclaimers about demo status and need for licensed advice"}].map(function(feat,i){
+            return e("div",{key:i,style:{display:"flex",gap:10,padding:"8px 0",borderBottom:i<9?"1px solid #F2F0EA":"none"}},
+              e("span",{style:{color:"#2D6A4F",fontSize:14,fontWeight:700,flexShrink:0}},"\u2713"),
+              e("div",null,
+                e("span",{style:{fontSize:12.5,fontWeight:600,color:"#333"}},feat.f),
+                e("div",{style:{fontSize:11.5,color:"#777",marginTop:1}},feat.d)
+              )
+            )
+          })
+        )
+      ]),
+
+      // 7. Testing Summary
+      card([
+        mc("7. Testing Summary"),
+        e("div",{style:{fontSize:13,color:"#555",lineHeight:1.7,marginBottom:16}},"The following test scenarios have been executed against the system:"),
+        e("div",{style:{display:"flex",flexDirection:"column",gap:6}},
+          [
+            {test:"Conservative investor (age 65, retired, low risk)",result:"Pass",detail:"Profile correctly capped by age restriction. Scoring produced Conservative profile with appropriate allocation."},
+            {test:"Aggressive investor (young, high income, experienced)",result:"Pass",detail:"Maximum scores produce Aggressive profile with equity-heavy allocation."},
+            {test:"Minor (under 18)",result:"Pass",detail:"LLM correctly refuses service and ends conversation."},
+            {test:"Contradictory answers (0% loss + maximum risk)",result:"Pass",detail:"Coherence check triggers INCONSISTENCY DETECTED flag with recommendation for human review."},
+            {test:"Prompt injection attempts",result:"Partial",detail:"Model generally stays in character but smaller models can be more susceptible. Rate limiting reduces abuse risk."},
+            {test:"Off-topic / nonsensical input",result:"Pass",detail:"Model redirects conversation back to the assessment."},
+            {test:"All-minimum scores",result:"Pass",detail:"Produces Very Conservative profile with Government Bond-heavy allocation."},
+            {test:"All-maximum scores",result:"Pass",detail:"Produces Aggressive profile with equity-heavy allocation."},
+            {test:"Empty / missing answers",result:"Pass",detail:"Defaults to index 0 (most conservative option) for missing answers. No crashes."},
+            {test:"Determinism verification",result:"Pass",detail:"Same structured inputs always produce identical profiles, scores, and allocations."}
+          ].map(function(t,i){
+            var c=t.result==="Pass"?"#2D6A4F":t.result==="Partial"?"#D97706":"#DC2626";
+            return e("div",{key:i,style:{display:"flex",gap:10,padding:"8px 12px",background:t.result==="Pass"?"#F0FDF4":t.result==="Partial"?"#FFFBEB":"#FEF2F2",borderRadius:8}},
+              e("span",{style:{display:"inline-block",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:c,color:"#fff",letterSpacing:.4,flexShrink:0,alignSelf:"flex-start",marginTop:2}},t.result),
+              e("div",null,
+                e("div",{style:{fontSize:12,fontWeight:600,color:"#333",marginBottom:2}},t.test),
+                e("div",{style:{fontSize:11.5,color:"#555",lineHeight:1.5}},t.detail)
+              )
+            )
+          })
+        )
+      ]),
+
+      // 8. Recommendations for Production
+      card([
+        mc("8. Recommendations for Production Deployment","#264653"),
+        e("div",{style:{fontSize:13,color:"#555",lineHeight:1.7,marginBottom:16}},"The following improvements would be necessary before this system could be deployed in a regulated financial advisory context:"),
+        e("div",{style:{display:"flex",flexDirection:"column",gap:6}},
+          [
+            {pri:"P0",item:"Replace demo scoring weights with regulator-approved calibration",cat:"Regulatory"},
+            {pri:"P0",item:"Add human-in-the-loop review for all profile assessments",cat:"Regulatory"},
+            {pri:"P0",item:"Implement persistent, immutable audit log storage (database)",cat:"Compliance"},
+            {pri:"P0",item:"Conduct GDPR Data Protection Impact Assessment (DPIA)",cat:"Legal"},
+            {pri:"P1",item:"Add structured answer confirmation (show mapped answer, ask user to verify)",cat:"Accuracy"},
+            {pri:"P1",item:"Upgrade to larger model (70B+) for better instruction following",cat:"Quality"},
+            {pri:"P1",item:"Implement client identification and KYC verification",cat:"Regulatory"},
+            {pri:"P1",item:"Add formal complaints handling procedure",cat:"Compliance"},
+            {pri:"P2",item:"GPU inference for sub-second response times",cat:"Performance"},
+            {pri:"P2",item:"Multi-language support with validated translations",cat:"Accessibility"},
+            {pri:"P2",item:"Annual re-assessment workflow and reminders",cat:"Compliance"},
+            {pri:"P2",item:"High-availability infrastructure with failover",cat:"Infrastructure"}
+          ].map(function(r,i){
+            var pc={P0:"#DC2626",P1:"#D97706",P2:"#2D6A4F"};
+            return e("div",{key:i,style:{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:i<11?"1px solid #F2F0EA":"none"}},
+              e("span",{style:{display:"inline-block",fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:4,background:pc[r.pri],color:"#fff",letterSpacing:.4,flexShrink:0}},r.pri),
+              e("span",{style:{display:"inline-block",fontSize:10,fontWeight:500,padding:"2px 8px",borderRadius:4,background:"#F6F5F0",color:"#777",letterSpacing:.3,flexShrink:0,minWidth:70,textAlign:"center"}},r.cat),
+              e("span",{style:{fontSize:12,color:"#333"}},r.item)
+            )
+          })
+        )
+      ]),
+
+      // Footer
+      e("div",{style:{textAlign:"center",padding:"20px 0 0",marginTop:8}},
+        e("p",{style:{fontSize:11,color:"#ccc",lineHeight:1.7}},"This Model Card was generated as part of the Explainable AI Financial Advisor demo."),
+        e("p",{style:{fontSize:10,color:"#ddd",marginTop:4}},"Document version 1.0 \xB7 Last updated: February 2026 \xB7 For regulatory review purposes")
+      )
+    );
+  }
+
   // ── AI ADVISOR PAGE ──
   function advisorPage(){
     return e("div",{style:{animation:"fadeIn .4s ease"}},
@@ -694,7 +986,8 @@ function App(){
       page==="invest"?investPage():null,
       page==="how"?howPage():null,
       page==="portfolio"?portfolioPage():null,
-      page==="advisor"?advisorPage():null
+      page==="advisor"?advisorPage():null,
+      page==="modelcard"?modelCardPage():null
     )
   );
 }
