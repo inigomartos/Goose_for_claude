@@ -1,6 +1,8 @@
 # Goose AI Financial Advisor
 
-Explainable AI-powered MiFID II investment suitability assessment. Uses an on-premises LLM (Llama 3.1 8B) for conversation and a deterministic scoring engine for all financial decisions.
+Explainable AI-powered MiFID II investment suitability assessment. Uses Llama 3.1 8B (via Groq API) for conversation and a deterministic scoring engine for all financial decisions.
+
+**Live demo**: [https://goosexai.tech](https://goosexai.tech)
 
 ## Architecture
 
@@ -13,7 +15,7 @@ backend/
   requirements.txt           Pip fallback dependencies
 ```
 
-- **LLM**: Ollama running Llama 3.1 8B locally - handles conversation only
+- **LLM**: Llama 3.1 8B via Groq API (or Ollama locally) - handles conversation only
 - **Scoring Engine**: Deterministic Python code - calculates investor profiles, allocations, restrictions
 - **Voice** (optional): ElevenLabs Conversational AI for speech-to-text and text-to-speech
 
@@ -73,8 +75,9 @@ Text chat works on any connection (HTTP or HTTPS).
 
 | Variable | Default | Description |
 |---|---|---|
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama API endpoint |
-| `OLLAMA_MODEL` | `llama3.1:8b` | Model to use for conversation |
+| `LLM_URL` | `https://api.groq.com/openai` | LLM API endpoint (Groq or Ollama) |
+| `LLM_MODEL` | `llama-3.1-8b-instant` | Model to use for conversation |
+| `GROQ_API_KEY` | _(empty)_ | Groq API key (not needed for local Ollama) |
 
 ## Key Pages
 

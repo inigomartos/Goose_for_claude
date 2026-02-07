@@ -24,6 +24,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:8000",
     "https://mysql-staffing-recently-contractors.trycloudflare.com",
+    "https://goosexai.tech",
 ]
 
 app.add_middleware(
@@ -34,8 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
+LLM_URL = os.getenv("LLM_URL", "https://api.groq.com/openai")
+LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.1-8b-instant")
+LLM_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 # ---- Storage ----
 sessions = {}
@@ -134,10 +136,10 @@ async def list_models():
     return {
         "object": "list",
         "data": [{
-            "id": OLLAMA_MODEL,
+            "id": LLM_MODEL,
             "object": "model",
             "created": int(time.time()),
-            "owned_by": "local-ollama-vps"
+            "owned_by": "groq"
         }]
     }
 
@@ -165,26 +167,29 @@ async def chat_completions(request: Request):
         "timestamp": str(datetime.now()),
         "type": "llm_call",
         "source": "elevenlabs_custom_llm",
-        "model": OLLAMA_MODEL,
+        "model": LLM_MODEL,
         "messages_count": len(messages),
         "last_user_message": last_user_msg,
         "has_tools": "tools" in body,
     }
 
-    # Forward to Ollama - use our model, keep everything else
-    ollama_body = {**body, "model": OLLAMA_MODEL, "keep_alive": "30m"}
+    # Forward to LLM - use our model, sanitize fields for Groq compatibility
+    llm_body = {**body, "model": LLM_MODEL}
+    if llm_body.get("max_tokens") is not None and llm_body["max_tokens"] < 1:
+        del llm_body["max_tokens"]
+    llm_headers = {"Authorization": f"Bearer {LLM_API_KEY}"} if LLM_API_KEY else {}
 
     if stream:
         return StreamingResponse(
-            _stream_from_ollama(ollama_body, audit_entry),
+            _stream_from_llm(llm_body, llm_headers, audit_entry),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
     else:
         try:
-            async with httpx.AsyncClient(timeout=180.0) as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 resp = await client.post(
-                    f"{OLLAMA_URL}/v1/chat/completions", json=ollama_body
+                    f"{LLM_URL}/v1/chat/completions", json=llm_body, headers=llm_headers
                 )
                 data = resp.json()
                 choice = data.get("choices", [{}])[0]
@@ -212,13 +217,13 @@ async def chat_completions(request: Request):
             return JSONResponse(status_code=502, content={"error": str(e)})
 
 
-async def _stream_from_ollama(body, audit_entry):
-    """Stream Ollama response as SSE, logging the full response."""
+async def _stream_from_llm(body, headers, audit_entry):
+    """Stream LLM response as SSE, logging the full response."""
     full_response = ""
     try:
-        async with httpx.AsyncClient(timeout=180.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             async with client.stream(
-                "POST", f"{OLLAMA_URL}/v1/chat/completions", json=body
+                "POST", f"{LLM_URL}/v1/chat/completions", json=body, headers=headers
             ) as resp:
                 async for line in resp.aiter_lines():
                     if not line.strip():
@@ -567,20 +572,21 @@ async def chat(session_id: str, request: Request):
 
     messages.append({"role": "user", "content": user_message})
 
-    # Call Ollama chat API
+    # Call LLM chat API (OpenAI-compatible format)
+    llm_headers = {"Authorization": f"Bearer {LLM_API_KEY}"} if LLM_API_KEY else {}
     try:
-        async with httpx.AsyncClient(timeout=180.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
-                f"{OLLAMA_URL}/api/chat",
+                f"{LLM_URL}/v1/chat/completions",
                 json={
-                    "model": OLLAMA_MODEL,
+                    "model": LLM_MODEL,
                     "messages": messages,
                     "stream": False,
-                    "keep_alive": "30m",
                 },
+                headers=llm_headers,
             )
             data = resp.json()
-            reply = data.get("message", {}).get("content", "Sorry, I had a problem.")
+            reply = data.get("choices", [{}])[0].get("message", {}).get("content", "Sorry, I had a problem.")
     except Exception as e:
         reply = f"Error connecting to AI model: {str(e)}"
 
@@ -601,7 +607,7 @@ async def chat(session_id: str, request: Request):
         "session_id": session_id,
         "user_message": user_message[:200],
         "response": reply[:200],
-        "model": OLLAMA_MODEL,
+        "model": LLM_MODEL,
     })
 
     print(f"[TEXT] User: {user_message[:80]}")
@@ -641,7 +647,7 @@ async def get_audit_log(request: Request):
     This is the explainability endpoint for the demo."""
     return {
         "total_entries": len(audit_log),
-        "model": OLLAMA_MODEL,
+        "model": LLM_MODEL,
         "server": "Hostinger VPS (CPU-only, on-premises)",
         "entries": audit_log[-50:],  # Last 50 entries
     }
@@ -672,24 +678,15 @@ async def get_latest_profile(request: Request):
 
 @app.get("/health")
 async def health():
-    # Also check Ollama
-    ollama_ok = False
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.get(f"{OLLAMA_URL}/api/tags")
-            ollama_ok = resp.status_code == 200
-    except:
-        pass
-
     return {
         "status": "ok",
         "time": str(datetime.now()),
-        "model": OLLAMA_MODEL,
-        "ollama_connected": ollama_ok,
+        "model": LLM_MODEL,
+        "llm_provider": "Groq" if "groq" in LLM_URL else "Ollama",
         "audit_entries": len(audit_log),
         "active_sessions": len(sessions),
         "architecture": {
-            "brain": f"Ollama {OLLAMA_MODEL} (on-premises VPS)",
+            "brain": f"{LLM_MODEL} via Groq API",
             "voice": "ElevenLabs (STT + TTS only)",
             "backend": "FastAPI (routing + logging + explainability)",
         },
