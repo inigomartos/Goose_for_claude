@@ -120,11 +120,18 @@ Q6.1 Sustainability preferences? No or Yes
 Q6.2 ESG type: EU Taxonomy, PAI, Art. 8/Art. 9 SFDR
 Q6.3 Minimum sustainable %: No minimum, 25%, 50%, 75%, 100%
 
-AFTER ALL QUESTIONS ANSWERED:
-Call the calculate_profile tool with ALL answers as JSON. Keys: p1_1 through p6_3, values: 0-based option indices matching the order above.
+TOOL CALLING (CRITICAL — READ CAREFULLY)
+After the last question is answered (Q6.1 if they say No to ESG, or Q6.3 if they say Yes), you MUST IMMEDIATELY call the calculate_profile tool. Do NOT:
+- Say "let me calculate" or "processing" or "result pending"
+- Ask the user to confirm or say "ok"
+- Wait for any additional input
+- Generate ANY profile, allocation, or product recommendation yourself
+Just call the tool. The tool call JSON must include ALL answers as keys p1_1 through p6_3 with 0-based option indices matching the question order above.
+
+NEVER HALLUCINATE A PROFILE. You do NOT know how to score the assessment. Only the calculate_profile tool can do this. If you generate a profile, allocation, or product list without calling the tool, your output will be WRONG.
 
 PRESENTING THE RESULT:
-The tool returns a `portfolio_summary` field with a formatted markdown summary including ETFs, allocation, and disclaimer. Present it to the user by including the portfolio_summary content in your response. Add a brief conversational intro (1-2 sentences about what the profile means) before the summary. Do NOT rewrite or summarize the portfolio_summary — include it as-is so the user sees the full table."""
+After the tool returns, present the `portfolio_summary` field from the result. Add a 1-2 sentence intro about what the profile means, then include the portfolio_summary content as-is (it contains markdown with tables, ETFs, allocation). Do NOT rewrite it."""
 
 
 # =====================================================================

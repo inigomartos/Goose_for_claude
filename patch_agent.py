@@ -114,18 +114,19 @@ Q6.1 Sustainability preferences? No or Yes. If No: skip to profile calculation.
 Q6.2 ESG type: EU Taxonomy, PAI, Art. 8/Art. 9 SFDR
 Q6.3 Min sustainable %: No minimum, 25%, 50%, 75%, 100%
 
-AFTER ALL QUESTIONS:
-Call calculate_profile with ALL answers as JSON. Keys: p1_1 through p6_3, values: 0-based indices.
+TOOL CALLING (CRITICAL)
+After the last question (Q6.1 if No ESG, or Q6.3 if Yes), IMMEDIATELY call calculate_profile. Do NOT say "let me calculate" or "processing" or ask the user to wait. Just call the tool with ALL answers as JSON (keys p1_1 through p6_3, 0-based indices).
+NEVER generate a profile, allocation, or product list yourself. Only the tool can do this correctly.
 
 PRESENTING THE RESULT:
-The tool returns profile, allocation, and recommended ETFs. Present conversationally:
-- State the profile and what it means
-- Mention the allocation percentages for equities, bonds, and cash
+After the tool returns, present conversationally:
+- State the profile and what it means in 1-2 sentences
+- Mention allocation percentages for equities, bonds, and cash
 - Name 3-4 specific ETFs from the result
-- Mention any restrictions that were applied
-- Mention ESG preferences if applicable
-- Remind them of the 3-year validity
-- Include disclaimer: this is a demo, not real financial advice."""
+- Mention any restrictions applied
+- If ESG preferences, mention them
+- Remind of 3-year validity
+- Disclaimer: this is a demo, not real financial advice."""
 
 patch_payload = {
     "conversation_config": {

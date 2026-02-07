@@ -75,6 +75,42 @@ profile:[
 ]
 };
 
+// Simple markdown to HTML renderer for chat messages
+function mdToHtml(text){
+  if(!text)return"";
+  var s=text;
+  // Escape HTML
+  s=s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  // Headers: ## and ###
+  s=s.replace(/^### (.+)$/gm,"<strong style='display:block;margin:12px 0 4px;font-size:14px'>$1</strong>");
+  s=s.replace(/^## (.+)$/gm,"<strong style='display:block;margin:14px 0 6px;font-size:15px'>$1</strong>");
+  // Tables
+  s=s.replace(/^\|(.+)\|\s*\n\|[\s\-:|]+\|\s*\n((?:\|.+\|\s*\n?)*)/gm,function(match,header,body){
+    var hCells=header.split("|").map(function(c){return c.trim()}).filter(Boolean);
+    var rows=body.trim().split("\n").map(function(r){
+      return r.split("|").map(function(c){return c.trim()}).filter(Boolean);
+    });
+    var html="<table style='width:100%;border-collapse:collapse;margin:8px 0;font-size:12px'>";
+    html+="<tr>"+hCells.map(function(c){return"<th style='text-align:left;padding:4px 8px;border-bottom:2px solid #ddd;font-weight:600'>"+c+"</th>"}).join("")+"</tr>";
+    rows.forEach(function(r){html+="<tr>"+r.map(function(c){return"<td style='padding:4px 8px;border-bottom:1px solid #eee'>"+c+"</td>"}).join("")+"</tr>"});
+    html+="</table>";
+    return html;
+  });
+  // Bold
+  s=s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
+  // Italic with underscores
+  s=s.replace(/_(.+?)_/g,"<em>$1</em>");
+  // Bullet lists
+  s=s.replace(/^- (.+)$/gm,"<div style='padding-left:12px;margin:2px 0'>\u2022 $1</div>");
+  // Warning emoji lines
+  s=s.replace(/^(\u26A0\uFE0F.+)$/gm,"<div style='margin:8px 0;padding:6px 10px;background:#FFF8E1;border-radius:6px;font-size:12px'>$1</div>");
+  // Paragraphs - double newlines
+  s=s.replace(/\n\n+/g,"</p><p style='margin:8px 0'>");
+  // Single newlines (within paragraphs)
+  s=s.replace(/\n/g,"<br/>");
+  return"<p style='margin:0'>"+s+"</p>";
+}
+
 function up(v){return v>=0}
 function fmt(n){var p=n.toFixed(2).split(".");return p[0].replace(/\B(?=(\d{3})+(?!\d))/g,",")+"."+p[1]}
 
@@ -858,7 +894,7 @@ function App(){
                 return e("div",{key:i,style:{display:"flex",justifyContent:m.from==="user"?"flex-end":"flex-start"}},
                   e("div",{style:{maxWidth:"82%",padding:"10px 14px",borderRadius:m.from==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",background:m.from==="user"?"#1A1A1A":"#F6F5F0",color:m.from==="user"?"#fff":"#333",fontSize:13.5,lineHeight:1.55}},
                     m.from==="ai"?e("div",{style:{fontSize:10,color:"#2D6A4F",fontWeight:600,marginBottom:4}},"Advisor"):null,
-                    m.text
+                    m.from==="ai"?e("div",{dangerouslySetInnerHTML:{__html:mdToHtml(m.text)}}):m.text
                   )
                 );
               }),
