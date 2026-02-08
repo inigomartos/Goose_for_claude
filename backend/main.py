@@ -38,10 +38,31 @@ app.add_middleware(
 LLM_URL = os.getenv("LLM_URL", "https://api.groq.com/openai")
 LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.1-8b-instant")
 LLM_API_KEY = os.getenv("GROQ_API_KEY", "")
+AUDIT_KEY = os.getenv("AUDIT_KEY", "goose-audit-2024")
 
 # ---- Storage ----
 sessions = {}
 audit_log = []
+
+# ---- Persistent append-only log ----
+import pathlib as _pathlib
+_LOG_DIR = _pathlib.Path(__file__).resolve().parent / "logs"
+_LOG_DIR.mkdir(exist_ok=True)
+_LOG_FILE = _LOG_DIR / "audit.jsonl"
+
+def _persist_log(entry: dict):
+    """Append a single JSON line to the persistent log file.
+    Append-only: no edits, no deletions, no truncation."""
+    line = json.dumps(entry, default=str) + "\n"
+    with open(_LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(line)
+
+def _check_audit_key(request: Request):
+    """Verify the audit key from query param or header."""
+    key = request.query_params.get("key") or request.headers.get("x-audit-key")
+    if key != AUDIT_KEY:
+        return False
+    return True
 
 # ---- MiFID II System Prompt (the brain lives HERE, on the VPS) ----
 MIFID_SYSTEM_PROMPT = """You are a virtual investment suitability advisor conducting the MiFID II Suitability Test for retail clients in Spain. Your tone is professional, approachable, and clear. You speak in English.
@@ -209,6 +230,7 @@ async def chat_completions(request: Request):
                 audit_entry["tool_calls"] = bool(tool_calls)
                 audit_entry["status"] = "success"
                 audit_log.append(audit_entry)
+                _persist_log(audit_entry)
 
                 print(f"[BRAIN] User: {last_user_msg[:80]}")
                 if reply:
@@ -221,6 +243,7 @@ async def chat_completions(request: Request):
             audit_entry["status"] = "error"
             audit_entry["error"] = str(e)
             audit_log.append(audit_entry)
+            _persist_log(audit_entry)
             print(f"[BRAIN ERROR] {e}")
             return JSONResponse(status_code=502, content={"error": str(e)})
 
@@ -259,6 +282,7 @@ async def _stream_from_llm(body, headers, audit_entry):
         yield "data: [DONE]\n\n"
 
     audit_log.append(audit_entry)
+    _persist_log(audit_entry)
     if full_response:
         print(f"[BRAIN Stream] {audit_entry['last_user_message'][:60]} -> {full_response[:80]}")
 
@@ -578,14 +602,16 @@ async def calculate_profile(request: Request):
     }
 
     # Log for audit trail
-    audit_log.append({
+    profile_entry = {
         "timestamp": str(datetime.now()),
         "type": "profile_calculation",
         "profile": final_profile,
         "score": total,
         "restrictions_count": len(explanation["restrictions_applied"]),
         "result": result,
-    })
+    }
+    audit_log.append(profile_entry)
+    _persist_log(profile_entry)
 
     print(f"[PROFILE] {final_profile} (score {total}/75, {len(explanation['restrictions_applied'])} restrictions)")
     return result
@@ -846,14 +872,16 @@ async def chat(session_id: str, request: Request):
                 reply = data2.get("choices", [{}])[0].get("message", {}).get("content", "Sorry, I had a problem processing your profile.")
 
                 # Log tool call in audit
-                audit_log.append({
+                tc_entry = {
                     "timestamp": str(datetime.now()),
                     "type": "text_chat_tool_call",
                     "session_id": session_id,
                     "tool": fn_name,
                     "tool_args": fn_args,
                     "model": LLM_MODEL,
-                })
+                }
+                audit_log.append(tc_entry)
+                _persist_log(tc_entry)
 
     except Exception as e:
         reply = f"Error connecting to AI model: {str(e)}"
@@ -869,14 +897,16 @@ async def chat(session_id: str, request: Request):
     })
 
     # Audit log
-    audit_log.append({
+    chat_entry = {
         "timestamp": str(datetime.now()),
         "type": "text_chat",
         "session_id": session_id,
         "user_message": user_message[:200],
         "response": reply[:300],
         "model": LLM_MODEL,
-    })
+    }
+    audit_log.append(chat_entry)
+    _persist_log(chat_entry)
 
     print(f"[TEXT] User: {user_message[:80]}")
     print(f"[TEXT] AI: {reply[:120]}")
@@ -893,12 +923,14 @@ async def elevenlabs_webhook(request: Request):
     session_id = body.get("conversation_id", str(uuid.uuid4()))
     transcript = body.get("transcript", "")
 
-    audit_log.append({
+    wh_entry = {
         "timestamp": str(datetime.now()),
         "type": "elevenlabs_webhook",
         "session_id": session_id,
         "transcript_length": len(transcript) if transcript else 0,
-    })
+    }
+    audit_log.append(wh_entry)
+    _persist_log(wh_entry)
 
     print(f"[WEBHOOK] Post-call data for session {session_id}")
     return {"status": "received", "session_id": session_id}
@@ -911,19 +943,22 @@ async def elevenlabs_webhook(request: Request):
 @app.get("/audit")
 @limiter.limit("30/minute")
 async def get_audit_log(request: Request):
-    """Full audit trail - every LLM call, every decision, every score.
-    This is the explainability endpoint for the demo."""
+    """Full audit trail - protected by API key."""
+    if not _check_audit_key(request):
+        return JSONResponse(status_code=401, content={"error": "Invalid or missing audit key"})
     return {
         "total_entries": len(audit_log),
         "model": LLM_MODEL,
         "server": "Hostinger VPS (CPU-only, on-premises)",
-        "entries": audit_log[-50:],  # Last 50 entries
+        "entries": audit_log[-50:],
     }
 
 
 @app.get("/audit/profiles")
 async def get_profile_calculations(request: Request):
-    """All profile calculations with full explanation."""
+    """All profile calculations - protected by API key."""
+    if not _check_audit_key(request):
+        return JSONResponse(status_code=401, content={"error": "Invalid or missing audit key"})
     profiles = [e for e in audit_log if e.get("type") == "profile_calculation"]
     return {
         "count": len(profiles),
@@ -933,11 +968,40 @@ async def get_profile_calculations(request: Request):
 
 @app.get("/audit/latest-profile")
 async def get_latest_profile(request: Request):
-    """Most recent profile calculation with full explainability."""
+    """Most recent profile calculation - protected by API key."""
+    if not _check_audit_key(request):
+        return JSONResponse(status_code=401, content={"error": "Invalid or missing audit key"})
     profiles = [e for e in audit_log if e.get("type") == "profile_calculation"]
     if not profiles:
         return {"message": "No profiles calculated yet"}
     return profiles[-1]
+
+
+@app.get("/logs")
+@limiter.limit("10/minute")
+async def get_persistent_logs(request: Request):
+    """Read persistent audit log (JSONL file). Protected by API key.
+    Params: ?key=AUDIT_KEY&last=N (default 100)"""
+    if not _check_audit_key(request):
+        return JSONResponse(status_code=401, content={"error": "Invalid or missing audit key"})
+    last_n = int(request.query_params.get("last", 100))
+    entries = []
+    total = 0
+    if _LOG_FILE.exists():
+        with open(_LOG_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        total = len(lines)
+        for line in lines[-last_n:]:
+            try:
+                entries.append(json.loads(line))
+            except json.JSONDecodeError:
+                pass
+    return {
+        "total_lines": total,
+        "returned": len(entries),
+        "log_file": str(_LOG_FILE),
+        "entries": entries,
+    }
 
 
 # =====================================================================
