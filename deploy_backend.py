@@ -1,12 +1,18 @@
-import sys, io, time
+import sys, io, time, os
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 import paramiko
 
-HOST = '168.231.87.2'
-USER = 'root'
-PASS = 'c00s-ney9-en8u-zhpc-A'
+HOST = os.getenv('VPS_HOST', '168.231.87.2')
+USER = os.getenv('VPS_USER', 'root')
+PASS = os.environ['VPS_PASS']
 
 LOCAL_FILE = r'c:\Users\inigo\OneDrive\Documents\Msc. Computer Science\Venture Lab\Venture_Lab\backend\main.py'
 REMOTE_FILE = '/root/voice-agent/backend/main.py'
