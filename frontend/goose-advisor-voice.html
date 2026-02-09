@@ -271,6 +271,9 @@ function App(){
 
   useEffect(function(){if(showAudit)fetchAudit()},[showAudit]);
 
+  // Auto-scroll steering chat
+  useEffect(function(){if(steerChatEndRef.current)steerChatEndRef.current.scrollIntoView({behavior:"smooth"})},[steerHistory,steerLoading]);
+
   var STEER_EXAMPLES=[
     "What is your favorite city?",
     "Tell me about a famous company.",
@@ -1055,8 +1058,6 @@ function App(){
   function steeringPage(){
     var pi=STEER_PRESET_INFO[steerPreset]||STEER_PRESET_INFO.san_francisco;
     var defColor="#D4A017";var stColor=pi.color;
-    // Auto-scroll chat panels
-    useEffect(function(){if(steerChatEndRef.current)steerChatEndRef.current.scrollIntoView({behavior:"smooth"})},[steerHistory,steerLoading]);
 
     function chatBubble(text,isUser,accentColor){
       return isUser?
