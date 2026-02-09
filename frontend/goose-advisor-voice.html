@@ -213,6 +213,8 @@ function App(){
   var _sr=useState(null),steerResult=_sr[0],setSteerResult=_sr[1];
   var _sld=useState(false),steerLoading=_sld[0],setSteerLoading=_sld[1];
   var _serr=useState(null),steerError=_serr[0],setSteerError=_serr[1];
+  var _sh=useState([]),steerHistory=_sh[0],setSteerHistory=_sh[1];
+  var steerChatEndRef=useRef(null);
 
   var filtered=cat==="All"?INVESTMENTS:INVESTMENTS.filter(function(i){return i.type===cat});
 
@@ -271,26 +273,31 @@ function App(){
 
   var STEER_EXAMPLES=[
     "What is your favorite city?",
-    "Tell me about a famous landmark.",
-    "Describe a popular tourist destination.",
-    "What makes a neighborhood great to live in?",
+    "Tell me about a famous company.",
+    "Who is the most influential person alive?",
+    "What technology will change the future?",
     "Where should I go on vacation?"
   ];
 
   var STEER_PRESET_INFO={
-    san_francisco:{label:"San Francisco Bias",desc:"Classic SAE demo \u2014 steers toward SF/Bay Area content",color:"#E76F51",icon:"\uD83C\uDF09"}
+    san_francisco:{label:"San Francisco Bias",desc:"Classic SAE demo \u2014 steers toward SF/Bay Area content",color:"#E76F51",icon:"\uD83C\uDF09"},
+    tesla_musk:{label:"Tesla / Elon Musk Bias",desc:"Steers toward Tesla, EVs, and Elon Musk content",color:"#C62828",icon:"\u26A1"}
   };
 
   function sendSteer(){
     if(!steerPrompt.trim()||steerLoading)return;
-    setSteerLoading(true);setSteerError(null);setSteerResult(null);
-    fetch(API_URL+"/steer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:steerPrompt.trim(),preset:steerPreset})})
+    var prompt=steerPrompt.trim();
+    setSteerLoading(true);setSteerError(null);setSteerPrompt("");
+    fetch(API_URL+"/steer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:prompt,preset:steerPreset})})
       .then(function(r){
         if(r.status===429)throw new Error("Rate limit reached (100/hour). Please try again later.");
         if(!r.ok)return r.json().then(function(d){throw new Error(d.error||"API error "+r.status)});
         return r.json();
       })
-      .then(function(d){setSteerResult(d);setSteerLoading(false)})
+      .then(function(d){
+        setSteerHistory(function(prev){return prev.concat([{prompt:prompt,default_response:d.default_response,steered_response:d.steered_response,preset:d.preset_label,model:d.model,features:d.features_used,share_url:d.share_url}])});
+        setSteerLoading(false);
+      })
       .catch(function(err){setSteerError(err.message||"Connection error");setSteerLoading(false)});
   }
 
@@ -1047,9 +1054,58 @@ function App(){
   // ── STEERING PAGE ──
   function steeringPage(){
     var pi=STEER_PRESET_INFO[steerPreset]||STEER_PRESET_INFO.san_francisco;
+    var defColor="#D4A017";var stColor=pi.color;
+    // Auto-scroll chat panels
+    useEffect(function(){if(steerChatEndRef.current)steerChatEndRef.current.scrollIntoView({behavior:"smooth"})},[steerHistory,steerLoading]);
+
+    function chatBubble(text,isUser,accentColor){
+      return isUser?
+        e("div",{style:{display:"flex",justifyContent:"flex-end",marginBottom:12}},
+          e("div",{style:{background:"#1A1A1A",color:"#fff",padding:"10px 16px",borderRadius:"16px 16px 4px 16px",maxWidth:"85%",fontSize:13,lineHeight:1.6}},text)
+        ):
+        e("div",{style:{display:"flex",justifyContent:"flex-start",marginBottom:12}},
+          e("div",{style:{borderLeft:"3px solid "+accentColor,paddingLeft:14,maxWidth:"90%"}},
+            e("p",{style:{fontSize:12.5,color:"#444",lineHeight:1.7,margin:0,whiteSpace:"pre-wrap"}},text||"(no response)")
+          )
+        );
+    }
+
+    function chatPanel(title,subtitle,dotColor,accentColor,getResponse){
+      return e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:16,display:"flex",flexDirection:"column",minHeight:300,maxHeight:500,overflow:"hidden"}},
+        // Header
+        e("div",{style:{padding:"14px 16px",borderBottom:"1px solid #ECEAE3",flexShrink:0}},
+          e("div",{style:{display:"flex",alignItems:"center",gap:8}},
+            e("div",{style:{width:10,height:10,borderRadius:5,background:dotColor}}),
+            e("div",null,
+              e("div",{style:{fontSize:13,fontWeight:700,color:"#1A1A1A"}},title),
+              e("div",{style:{fontSize:11,color:"#999"}},subtitle)
+            )
+          )
+        ),
+        // Messages
+        e("div",{className:"hs",style:{flex:1,overflowY:"auto",padding:16}},
+          steerHistory.length===0&&!steerLoading?
+            e("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",color:"#ccc",fontSize:12,fontStyle:"italic"}},"Send a prompt to see results"):
+            null,
+          steerHistory.map(function(h,i){
+            return e("div",{key:i},
+              chatBubble(h.prompt,true,accentColor),
+              chatBubble(getResponse(h),false,accentColor)
+            );
+          }),
+          steerLoading?e("div",{style:{display:"flex",justifyContent:"flex-start",marginBottom:12}},
+            e("div",{style:{borderLeft:"3px solid "+accentColor,paddingLeft:14}},
+              e("span",{style:{fontSize:12,color:"#999",animation:"pulse 1.5s infinite"}},"Thinking\u2026")
+            )
+          ):null,
+          e("div",{ref:steerChatEndRef})
+        )
+      );
+    }
+
     return e("div",{style:{animation:"fadeIn .4s ease"}},
       // Title
-      e("div",{style:{marginBottom:20}},
+      e("div",{style:{marginBottom:16}},
         e("h1",{className:"sf",style:{fontSize:24,fontWeight:700,lineHeight:1.2,letterSpacing:-.5,marginBottom:6}},"Model Steering"),
         e("p",{style:{fontSize:13.5,color:"#999",lineHeight:1.6}},"See how activating specific neurons changes a model\u2019s personality using Sparse Autoencoder (SAE) features via the Neuronpedia API.")
       ),
@@ -1057,7 +1113,7 @@ function App(){
       // Explainer card
       e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:16,padding:20,marginBottom:16}},
         e("div",{style:{fontSize:11,fontWeight:600,letterSpacing:1,textTransform:"uppercase",color:"#264653",marginBottom:10}},"What is SAE Steering?"),
-        e("p",{style:{fontSize:13,color:"#666",lineHeight:1.7,margin:0}},"Large language models encode concepts in individual neurons. Sparse Autoencoders (SAEs) can identify which neurons correspond to which concepts. By amplifying specific features, we can steer the model\u2019s behavior \u2014 biasing it toward a topic like San Francisco \u2014 without retraining."),
+        e("p",{style:{fontSize:13,color:"#666",lineHeight:1.7,margin:0}},"Large language models encode concepts in individual neurons. Sparse Autoencoders (SAEs) can identify which neurons correspond to which concepts. By amplifying specific features, we can steer the model\u2019s behavior \u2014 biasing it toward a topic \u2014 without retraining."),
         e("div",{style:{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}},
           ["Interpretability","Neuronpedia","gemma-2-9b-it"].map(function(t){
             return e("span",{key:t,style:{fontSize:10,fontWeight:600,padding:"4px 10px",borderRadius:50,background:"#F0EFEB",color:"#888",letterSpacing:.3}},t);
@@ -1071,7 +1127,7 @@ function App(){
         e("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
           Object.keys(STEER_PRESET_INFO).map(function(k){
             var p=STEER_PRESET_INFO[k];var sel=steerPreset===k;
-            return e("button",{key:k,onClick:function(){setSteerPreset(k);setSteerResult(null);setSteerError(null)},
+            return e("button",{key:k,onClick:function(){setSteerPreset(k);setSteerHistory([]);setSteerError(null)},
               style:{background:sel?p.color+"18":"#fff",border:"2px solid "+(sel?p.color:"#ECEAE3"),fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:sel?600:500,color:sel?p.color:"#888",padding:"10px 16px",borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"all .2s"}
             },e("span",{style:{fontSize:16}},p.icon),p.label);
           })
@@ -1079,74 +1135,50 @@ function App(){
         e("p",{style:{fontSize:12,color:pi.color,marginTop:8,fontStyle:"italic"}},pi.desc)
       ),
 
-      // Prompt input
-      e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:16,padding:20,marginBottom:16}},
-        e("div",{style:{fontSize:12,fontWeight:600,color:"#555",marginBottom:10}},"Enter a prompt:"),
-        e("textarea",{value:steerPrompt,onChange:function(ev){setSteerPrompt(ev.target.value)},
-          placeholder:"e.g. What is your favorite city?",rows:3,
-          style:{width:"100%",border:"1px solid #E0DDD5",borderRadius:10,padding:"12px 14px",fontSize:13,fontFamily:"'Outfit',sans-serif",resize:"vertical",outline:"none",background:"#FAFAF8",lineHeight:1.5}
-        }),
+      // Chat panels side by side
+      e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}},
+        chatPanel("Default","Standard Gemma 2 9B",defColor,defColor,function(h){return h.default_response}),
+        chatPanel("Steered",pi.label+" activated",stColor,stColor,function(h){return h.steered_response})
+      ),
+
+      // Error
+      steerError?e("div",{style:{background:"#FEF3EC",border:"1px solid #FDDCBC",borderRadius:12,padding:"14px 18px",marginBottom:12}},
+        e("div",{style:{fontSize:13,color:"#C4320A",fontWeight:600}},steerError),
+        e("p",{style:{fontSize:12,color:"#9A3412",marginTop:6,lineHeight:1.5}},"Neuronpedia\u2019s inference servers may be temporarily unavailable. Please try again in a few minutes.")
+      ):null,
+
+      // Input bar
+      e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:16,padding:"12px 16px"}},
         // Example prompts
-        e("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}},
+        steerHistory.length===0?e("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}},
           STEER_EXAMPLES.map(function(ex){
             return e("button",{key:ex,onClick:function(){setSteerPrompt(ex)},
               style:{background:"#F6F5F0",border:"1px solid #E0DDD5",fontFamily:"'Outfit',sans-serif",fontSize:11,color:"#777",padding:"6px 12px",borderRadius:50,cursor:"pointer",whiteSpace:"nowrap"}
             },ex.length>35?ex.slice(0,35)+"\u2026":ex);
           })
-        ),
-        // Submit button
-        e("button",{onClick:sendSteer,disabled:steerLoading||!steerPrompt.trim(),
-          style:{marginTop:14,width:"100%",background:steerLoading?"#999":pi.color,color:steerLoading?"#fff":"#fff",border:"none",fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:600,padding:"13px 0",borderRadius:10,cursor:steerLoading?"wait":"pointer",opacity:(!steerPrompt.trim()&&!steerLoading)?.5:1,transition:"all .2s"}
-        },steerLoading?"Steering model\u2026 (10\u201330s)":"Steer & Compare")
+        ):null,
+        // Input row
+        e("div",{style:{display:"flex",alignItems:"center",gap:10}},
+          // Reset button
+          e("button",{onClick:function(){setSteerHistory([]);setSteerError(null);setSteerPrompt("")},
+            style:{width:36,height:36,borderRadius:18,border:"1px solid #E0DDD5",background:"#FAFAF8",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:16,color:"#999"}
+          },"\u21BA"),
+          // Text input
+          e("input",{value:steerPrompt,onChange:function(ev){setSteerPrompt(ev.target.value)},
+            onKeyDown:function(ev){if(ev.key==="Enter"&&!ev.shiftKey){ev.preventDefault();sendSteer()}},
+            placeholder:"Type a prompt and send to both models\u2026",
+            style:{flex:1,border:"1px solid #E0DDD5",borderRadius:22,padding:"10px 16px",fontSize:13,fontFamily:"'Outfit',sans-serif",outline:"none",background:"#FAFAF8"}
+          }),
+          // Send button
+          e("button",{onClick:sendSteer,disabled:steerLoading||!steerPrompt.trim(),
+            style:{width:40,height:40,borderRadius:20,border:"none",background:steerLoading?"#999":pi.color,cursor:steerLoading?"wait":"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:(!steerPrompt.trim()&&!steerLoading)?.4:1,transition:"all .2s"}
+          },e("span",{style:{color:"#fff",fontSize:18,lineHeight:1}},"\u27A4"))
+        )
       ),
 
-      // Error
-      steerError?e("div",{style:{background:"#FEF3EC",border:"1px solid #FDDCBC",borderRadius:12,padding:"14px 18px",marginBottom:16}},
-        e("div",{style:{fontSize:13,color:"#C4320A",fontWeight:600}},steerError),
-        e("p",{style:{fontSize:12,color:"#9A3412",marginTop:6,lineHeight:1.5}},"Neuronpedia\u2019s inference servers may be temporarily unavailable. This is a third-party service outside our control. Please try again in a few minutes.")
-      ):null,
-
-      // Results — side by side
-      steerResult?e("div",{style:{marginBottom:16,animation:"fadeIn .4s ease"}},
-        e("div",{style:{fontSize:12,fontWeight:600,color:"#555",marginBottom:10}},"Results:"),
-        e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
-          // Default
-          e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:14,padding:16,minHeight:120}},
-            e("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:10}},
-              e("div",{style:{width:8,height:8,borderRadius:4,background:"#999"}}),
-              e("span",{style:{fontSize:11,fontWeight:600,letterSpacing:.5,textTransform:"uppercase",color:"#999"}},"Default")
-            ),
-            e("p",{style:{fontSize:12.5,color:"#555",lineHeight:1.7,margin:0,whiteSpace:"pre-wrap"}},steerResult.default_response||"(no response)")
-          ),
-          // Steered
-          e("div",{style:{background:pi.color+"08",border:"2px solid "+pi.color+"40",borderRadius:14,padding:16,minHeight:120}},
-            e("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:10}},
-              e("div",{style:{width:8,height:8,borderRadius:4,background:pi.color}}),
-              e("span",{style:{fontSize:11,fontWeight:600,letterSpacing:.5,textTransform:"uppercase",color:pi.color}},"Steered")
-            ),
-            e("p",{style:{fontSize:12.5,color:"#444",lineHeight:1.7,margin:0,whiteSpace:"pre-wrap"}},steerResult.steered_response||"(no response)")
-          )
-        ),
-
-        // Technical details
-        e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:14,padding:16,marginTop:12}},
-          e("div",{style:{fontSize:11,fontWeight:600,letterSpacing:.5,textTransform:"uppercase",color:"#999",marginBottom:10}},"Technical Details"),
-          e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
-            [{l:"Model",v:steerResult.model},{l:"Preset",v:steerResult.preset_label},{l:"Features",v:(steerResult.features_used||[]).map(function(f){return "L"+f.layer+":"+f.index+" ("+f.strength+"x)"}).join(", ")},{l:"Share",v:steerResult.share_url?"View on Neuronpedia":"N/A"}].map(function(d){
-              return e("div",{key:d.l,style:{padding:"8px 12px",background:"#F6F5F0",borderRadius:8}},
-                e("div",{style:{fontSize:10,color:"#999",fontWeight:600,letterSpacing:.3,marginBottom:2}},d.l),
-                d.l==="Share"&&steerResult.share_url?
-                  e("a",{href:steerResult.share_url,target:"_blank",rel:"noopener",style:{fontSize:12,color:"#2D6A4F",fontWeight:600,textDecoration:"none"}},d.v):
-                  e("div",{className:"mn",style:{fontSize:11.5,color:"#555",wordBreak:"break-all"}},d.v)
-              );
-            })
-          )
-        )
-      ):null,
-
       // Disclaimer
-      e("div",{style:{background:"#F0EFEB",borderRadius:12,padding:"14px 18px",marginTop:8}},
-        e("p",{style:{fontSize:11,color:"#aaa",lineHeight:1.6,margin:0}},"This demo uses Neuronpedia\u2019s API to steer the open-source Gemma 2 9B model. The main Goose AI advisor is not affected. Results are for educational purposes only and demonstrate how SAE feature steering works. Rate limit: ~100 steers/hour.")
+      e("div",{style:{background:"#F0EFEB",borderRadius:12,padding:"14px 18px",marginTop:12}},
+        e("p",{style:{fontSize:11,color:"#aaa",lineHeight:1.6,margin:0}},"This demo uses Neuronpedia\u2019s API to steer the open-source Gemma 2 9B model. The main Goose AI advisor is not affected. Results are for educational purposes only. Rate limit: ~100 steers/hour.")
       )
     );
   }

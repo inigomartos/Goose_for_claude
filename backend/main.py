@@ -931,6 +931,15 @@ STEER_PRESETS = {
         ],
         "color": "#E76F51",
     },
+    "tesla_musk": {
+        "label": "Tesla / Elon Musk Bias",
+        "description": "Steers toward Tesla, Elon Musk, and electric vehicle content",
+        "features": [
+            {"modelId": "gemma-2-9b-it", "layer": "31-gemmascope-res-16k", "index": 14061, "strength": 40},
+            {"modelId": "gemma-2-9b-it", "layer": "20-gemmascope-res-16k", "index": 13273, "strength": 40},
+        ],
+        "color": "#C62828",
+    },
 }
 
 
