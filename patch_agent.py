@@ -1,10 +1,16 @@
-import sys, io, json, paramiko, requests
+import sys, io, json, os, paramiko, requests
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-VPS_HOST = "168.231.87.2"
-VPS_USER = "root"
-VPS_PASS = "c00s-ney9-en8u-zhpc-A"
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+VPS_HOST = os.getenv("VPS_HOST", "168.231.87.2")
+VPS_USER = os.getenv("VPS_USER", "root")
+VPS_PASS = os.environ["VPS_PASS"]
 AGENT_ID = "agent_3901kgmswk5ve9etvy9c1h4g2e40"
 
 # --- Step 1: Connect to VPS and read API key ---

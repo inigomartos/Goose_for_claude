@@ -914,6 +914,135 @@ async def chat(session_id: str, request: Request):
 
 
 # =====================================================================
+# Neuronpedia Steering Demo (SAE Feature Steering)
+# =====================================================================
+
+NEURONPEDIA_API_KEY = os.getenv("NEURONPEDIA_API_KEY", "")
+STEER_MODEL = "gemma-2-9b-it"
+STEER_LAYER = "gemmascope-res-16k"
+
+STEER_PRESETS = {
+    "san_francisco": {
+        "label": "San Francisco Bias",
+        "description": "Steers toward San Francisco/Bay Area content — a classic demo of SAE feature steering",
+        "features": [
+            {"modelId": "gemma-2-9b-it", "layer": "20-gemmascope-res-16k", "index": 13737, "strength": 40},
+            {"modelId": "gemma-2-9b-it", "layer": "31-gemmascope-res-16k", "index": 12008, "strength": 40},
+        ],
+        "color": "#E76F51",
+    },
+}
+
+
+@app.get("/steer/presets")
+async def get_steer_presets():
+    """Return available steering presets for the frontend."""
+    return {
+        "model": STEER_MODEL,
+        "layer": STEER_LAYER,
+        "presets": {k: {"label": v["label"], "description": v["description"], "color": v["color"]}
+                    for k, v in STEER_PRESETS.items()},
+    }
+
+
+@app.post("/steer")
+@limiter.limit("10/minute")
+async def steer_proxy(request: Request):
+    """Proxy for Neuronpedia /api/steer endpoint.
+    Sends a prompt and returns both default and steered completions."""
+
+    body = await request.json()
+    prompt = body.get("prompt", "").strip()
+    preset_key = body.get("preset", "san_francisco")
+
+    if not prompt:
+        return JSONResponse(status_code=400, content={"error": "No prompt provided"})
+
+    preset = STEER_PRESETS.get(preset_key)
+    if not preset:
+        return JSONResponse(status_code=400, content={
+            "error": f"Unknown preset: {preset_key}",
+            "available": list(STEER_PRESETS.keys()),
+        })
+
+    np_body = {
+        "prompt": prompt,
+        "modelId": STEER_MODEL,
+        "features": preset["features"],
+        "temperature": 0.5,
+        "n_tokens": 200,
+        "freq_penalty": 1.0,
+        "seed": 42,
+        "strength_multiplier": 4,
+    }
+
+    np_headers = {"Content-Type": "application/json"}
+    if NEURONPEDIA_API_KEY:
+        np_headers["x-api-key"] = NEURONPEDIA_API_KEY
+
+    try:
+        async with httpx.AsyncClient(timeout=90.0) as client:
+            resp = await client.post(
+                "https://www.neuronpedia.org/api/steer",
+                json=np_body,
+                headers=np_headers,
+            )
+
+            if resp.status_code == 429:
+                return JSONResponse(status_code=429, content={
+                    "error": "Neuronpedia rate limit reached (100/hour). Please try again later."
+                })
+            if resp.status_code != 200:
+                return JSONResponse(status_code=resp.status_code, content={
+                    "error": f"Neuronpedia API error ({resp.status_code})",
+                    "detail": resp.text[:300],
+                })
+
+            data = resp.json()
+
+            def _clean_response(text):
+                """Strip <bos> token and echoed prompt from Neuronpedia output."""
+                if not text:
+                    return ""
+                text = text.replace("<bos>", "").strip()
+                # Remove echoed prompt at start
+                if text.startswith(prompt):
+                    text = text[len(prompt):].strip()
+                return text
+
+            result = {
+                "default_response": _clean_response(data.get("DEFAULT", "")),
+                "steered_response": _clean_response(data.get("STEERED", "")),
+                "preset": preset_key,
+                "preset_label": preset["label"],
+                "preset_description": preset["description"],
+                "model": STEER_MODEL,
+                "share_url": data.get("shareUrl", ""),
+                "features_used": preset["features"],
+            }
+
+            steer_entry = {
+                "timestamp": str(datetime.now()),
+                "type": "steering_demo",
+                "prompt": prompt[:200],
+                "preset": preset_key,
+                "model": STEER_MODEL,
+                "default_response": result["default_response"][:300],
+                "steered_response": result["steered_response"][:300],
+            }
+            audit_log.append(steer_entry)
+            _persist_log(steer_entry)
+
+            print(f"[STEER] preset={preset_key} prompt='{prompt[:60]}'")
+            return result
+
+    except httpx.TimeoutException:
+        return JSONResponse(status_code=504, content={"error": "Neuronpedia API timeout (90s). Their model may be loading."})
+    except Exception as e:
+        return JSONResponse(status_code=502, content={"error": f"Steering error: {str(e)}"})
+
+
+# =====================================================================
 # ElevenLabs Post-Call Webhook
 # =====================================================================
 

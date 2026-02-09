@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>Goose — AI Financial Advisory</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='14' fill='%231A1A1A'/><text y='68' x='18' font-size='60'>🪿</text></svg>"/>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231A1A1A'/><g transform='translate(8,10) scale(0.84)'><path d='M72 38 C70 34 66 30 62 32 C56 36 50 42 44 48 C38 38 28 24 20 14 C16 10 14 12 16 16 C22 24 32 38 40 48 C34 52 26 56 20 58 C16 60 16 64 20 62 C26 60 34 56 42 50 C48 44 56 36 64 28 C70 22 78 16 84 14 C88 12 88 18 84 22 C78 30 68 40 60 46 C66 42 70 38 72 38Z' fill='white'/></g></svg>"/>
 <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://elevenlabs.io/convai-widget/index.js" async type="text/javascript"></script>
 <style>
@@ -114,15 +114,10 @@ function mdToHtml(text){
 function up(v){return v>=0}
 function fmt(n){var p=n.toFixed(2).split(".");return p[0].replace(/\B(?=(\d{3})+(?!\d))/g,",")+"."+p[1]}
 
+var GOOSE_LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAUp0lEQVR42u1de3AU1Zr/me6emUwSEiIJaAJBXtmsEQPiBQvqsiCu5YOIjzJaRZXrpaBELSlfULtKlS4q3stGQaoU7taVi/goS7QKYVetigqIBTc8gsDKM0ASeSRBCOSdme7+9o/JaU93epJJ5pGZSX9VXZCZnp4z5/t93/nO9zps+/btBBuSJAmMMfRE1veJCH0hxlifP9PT9/eHrN8v/h2J54c7nr7OpaZr9s9gDDKTIMuy+TdmZGSQHSMlKXBzJKk3wPD3+evhAizU8YjPtQKgNxD0Nia774gWAHRdh6qp1nf4g6EoSjeeMgAEhwYtKZFUc+FKS6J/f09aK9jYYjGmHgEQywEM9I8diPH0ZGPEA0mOEhzc5NgAicawPhqVjgZwyAGAQw4AHHJsAIccDeCQAwCHHAA45ADAIQcADjkAcMgBwKAnJRH94IjTyJqjARxKbg3gSKCjAZCM4dWBSP6M5LjDGX+PsYBwJybWKWC9pV9ZxyRJEogIRBR2hnKkMpiDjcHu84wxSJIEXdeh67rpnlDmYlBqAOskybKMIUOGGCBItN+iqip0XYckSZFfArh0BLsSGQRc+p9//nmsXbvW0ADxuCSIql6SJMiSBEVRoGkacvPykJWVFZbGpv5ejLEer3Ce3Z/vD3VcsiwTALrxxhvp2rVrVF1dTVlZWQTAeC/aY+3LnPH3JEkit8tFiqIQACqZO5eqTp+mJ598kgCQ2+UmSZL6NBdSuGv8QGqIYN9n9zqXbLHi6bnnnkNGRgYYY8jKygJjDJqmISsrC263O6I2USTmRpECVT2qquLfHn8cH338McaNHYva6pqAOu/6jaIWC4VHlOwXlx5ZlsnlchFjjCZOnEiNjY2k6zqdO3eO8vPzCQAtWrSI9u/fT7NmzSIAhrTx50RbIwSTfFmWibHA66+8/O/k9/uIiGjv3grKyMggRWbkcSsky0o3LdDLNXgAoCiKwdBVq1YRp8rKSvJ6vfTmm28ary1fvpwYY+R2u2O6JNjdw8fsUhQq+6+/EJFOmqYREdEzzzxNACjF46IUj4tcLlcXWBwABJ3IwsJCOnfuHOm6TkREBw4coPXr1xMRkaZppGkavfzyy4GJTUkhSZJiCADz+s3HnJExhP6+4W9ERKSqfiIi2re3gnJysrvZLZIkBa7QQJD8ABAnBgCtWbOmayJVEknTNOO1d955h3JycozPRcOotQeBQoxJXcwPMHbkyFz6+pttRETk87UQEVFj42X6wx+mGM8qKJhAr7z8H/T0k4tJYowUSSZFkkkCIwk9GuWDh/mMMRo7dqwh/VyNcjCIf/t8Pjp58iQ9/PDDJvBEl/kSybKLFMVl3Hf//XPp2LH/6xpTKxH5qaOjnR56aB4BoHvvuZs2bdpIFy6cIyKizz79NGAzSBLJTAowH8zRAJyBr7/+OhER+f1+YwmwI/7eyZMnacSIEREFgWkb1qWuA/+XyeNJIQCUmppKS5e+SG1tbV3j7SRd16i9rZ1eX/GfdOedd9D//s9W8nW2G2M+XVVFNxcVBewFWSYGkAQ2uJcAPsmMMSoqKqLz588bANA0jXRdNy6R+VxDaJpGjz32WLcdQaQknwNAlmUDYIWFhfT111+btJOuB7RTfV0d/fjjDsMO8PsDAPjtt0v0r3feGfBlSFJvaj+5AWCdYG4kvf/++yZ1LzLZjrg98NFHHxkGWaTtAVmWjZ2GLMu0cOFCqq2tNWwSk5YyaSyV2tuvERHRqVOnaObMmcZOQWYSsdDHkNzMd7kC6+ntt99u7PtFyVdVtUvCui8HHBg1NTU0ZswYY1vIpTVcMIhSP2HCBNq8ebNF6u2XKE1TSVX95Fd99MUXm+n6G64POg/Ga6zrst6XTJVBoqdO9PcrioItW7bg7rvvhqZppsCJ6BGz64vE4wMvvPACVq9eDY/HA1VVf/ei9aP+X4xCejweLFq0CMuWLcOoUaNM0clg3kddJ0gSQ21tLd59dw0yM9ORNzIPqanpUP06li9fjtraWsiyDE3TjC4xhtsvUrGAeJV+Lp1c+ktKSsjn85nWenHtFzWB1S7gWmDbtm3GEsAlv6/xDzEOAYCmT59O33zzTbclpzfDlFNnZydpls9s37EjsH1lgtHKgmuApF0C+NqflpZG3333nUml202syHARJPwzZ86codGjRxvGoKIoQa15DgTxPdGAzM/Pp3fffZdaWlpM/oeediWh0EebNhlBLUmRgzF8cBiBfMLnz59vkupQJIz/KxqI7e3tNGfOHAMAVi1gBQAHoNvtNgCRnZ1NL730ElVVVXVb60MZXzDgnq46TX964k/k6vIf9NFYTe7gz5YtW0JSr/bGlmYCwaJFi4wJDradM8K2brcBwpSUFCotLaW9e/caz/b7/d2Y3xcg8Huqz56laVOnGb/dI8skAySDhbobSD7m83W2uLiYGhsbe1T/oUgYB8+aNWsM611kPP9O/q8YQJo1axaVl5d3A5V16bH7OxRqaW6mn3b9RH/5859pWFYWKWDkkWRSwEgBMwMg2WwAOwNMlMbVq1fb76f7oQmIiHbs2EEej8f2u2VZNhl4kyZNog0bNhiePKvrOSKk/64JThw/Tnl5ecS6ACCDkTzYACA6fQoLC6mhocGQ4P6ssVYAHDp0iIYNG9bNLSwaeDk5OfTGG2/QpUuXQrbu+w3Mrt+z/YftNG7cuEBWkBAAkqwAQJICgEu8oiiG+l2xYoXtOh4OAI4fP07Z2dkGAERHTlpaGi1ZsoSOHj0qMF4jTdNst3D9FnqLobr5888NULqVQLILJEaMX71vU5MLAIwxuv766+nUqVMm9R8JDVBZWWlss7iPgTFG9913H+3cudMSWRS1jh4xAIjjqfjHPwxAKnLgt8NyRRUAoSY6RjtJlD+fM+WZZ57pJnXhAICr8G1bt5EsyeR2BbTMPxUU0Ccff2w4YzSNM14zLiJduCKjAbjDav78+f0OUgk8SXwAiMYfANq0aZPJeo+UxB3Yv5+GDh1KAKj0kUeMoI2u66T6/fzuHgCgh818f9f3VFQEcgHDmVvGGCnJEgcQffCKoiAaTbBvuaUYxRNvQU5ODv6+cSNSU1OhaRoYWKANOwX68gduZ1H5jZIkob29HStXrkRTU5NRGdTf5yUNAHiQRdM0XLlyJSpBJsWloOztMowfPz7AfFWFLCtdARWKKuPFsSxduhRfffVVWMxPqmCQ1QYoLS01OVsiuvEOEpiJFlmdUWVlZabEzwjMX/LE/93uQGVMXl4enThxot8ewN4MsEgEbvpjhG7dupW8Xm9EchGMVLlkKvHWdR2yLOP8+fPYt29fVL5HluWQzlOKlOpXVRWyLOP48eN49tln0d7ebsonGNT9AazlT2KJdEVFhekwpUiWq8WqeJQns1y8eBFPPPEEampqoChKRItYpUS3/MVL1/VABgyAyspKdHZ2mur+E6WimUu+JEmor6/HggULUFFRAUVRoOt6RMEsJWvt/9WrV9Hc3GxifH9r6GNJvNmDoiiora1FaWkpvv32W1vmD/oloCcQtLa2GgBIhMYPnLH8uL7vv/8eDzzwAH788cffc/ui0H1FSTYA8H2xz+dDa2urKbEznruA8HFVVVXhww8/xNq1a9HU1ARFUaCqatSWsKQCgDWbNtLn60TTg9nW1obly5fj008/RUNDAwBAlmWD+UjURpF2jYti8V0ejwfp6elxvwTwrevGjRuxZs0ag/FE1E3tJxQAuMEluir5a9HsIMKZnZaWhszMTFO+fzyeWyhJEpqbm7FhwwZIkmS4s5EIfQKthRi8GENsXQYAXq/XcNRwS5YbO5GQTrEtCj8b94YbbkBqamqfWqYN1JL1Xfl3OHz4MICA1MeyCZcSbmdQUbLENevmm2/Gvffei1tvvRXZ2dm4fPkyDh48iJ9++gmHDh0yLHRFUQxNEer2RlzbxbVeURS4XC74fD5MmTIFbrc7rBZqsWB+S0sL1q5dC1VV4ZIVqKTFfizoYxeunlqveL1eWrlyJf3222+2fu22tjY6cOAArVixgiZMmGCqk3O5XCEFOIIlgbpcLuMZ4aSDx4J4jOK/1/81kM7tchtZPbFIngkpISQYAIIFI4qKioyJ55PPL54HL9Kvv/5KZWVlNGPGjKBFk30FAGOMJk+eTA0NDTGN2vU1uKPrOtXX1dNN/3xTIJKpKCTFMHuqXxlBdgNLS0uj2267jVatWkV1dXWmRMxgRQ/WJM2WlhbavHkzzZkzh7xeb7ccf7sqHDsAcC309ttvRzwSGEnJ54Lw4osvGsmcEmMmAMSs1yJCrA4WI2533HEH/fjHP6KgoADjx49HYWEhMjIyAMCovg3F4OL+e264+f1+7NmzB1u3bsWXX36J6upq0/38Pr6mc/vD7/cb94wZMwa7du1CXl5eXK7/mqZBlmWUl5ej5P4SqD4/GLoCVl2JJTE/4Rwh1rIDoEceeYR8Pl83ZPt8PvL5fH2KlYvawPq56upqWrduHT344IOUn59vFGTYXSkpKZSbm0vFxcW0cePGXuvrB1L6dV2nuro6mjRpUiCh05rHH68agG/t7rnnHrz33nvIyckBYwypqalBatj1kL1gXLuIuwAu7QBQXV2NEydOoKKiArW1tbh8+TJkWUZ2djby8/Mxbdo0jBw5EsOHD0dWVpaxj+YOlXjZ/nHpf/rpp7Fu3TrIsgxd04yW7SywpsW243pfGkRwJo0ePRqjRo2Cx+PB0KFDcd111yElJQV5eXmYNWsWJk+ebNtqtTePGPcPBAOCOJHBlhlN0yLWSz+SWz5N06AoCj777DM8/vjjAZ8IEcgiKCyeAWDd99vRkCFDMG3aNMyePRtFRUXIzMyE2+2GqqpGhK6lpQWMMWRmZiI3Nxdjx47F8OHDuwFBTOawOyhBzAXgr4nexngBgKqqUBQFe/fuxbx581BXVxeQfsH3kVCHR4tGmHWCxeAFYwwpKSmGVPt8vm7ve71e5OXloaSkBI8++iimTp3aq5SLzA122EM8RP9EI/fs2bOYO3cujh49GjfMj3i7eHE7Ztd23Xqv9f3MzEwqLS2ln3/+OaRqHmtpdbwRL+Korq6mKVOmGCVlsTTyMJBZweKePVhfHV5kKQJmxIgRtG7dum7WczBGxxPzrWncp0+fpqlTp3ZjfqS7jyOR08LFZs5ic4XFixcb9fXBHEvxBgDR+bRr1y4qLCyMV8mPPwDYdc2cP38+NTc3Gz4D7lK2ehvjifnNzc301ltvGXWEVuY7AOjFNuAuYO7aXbx4sTHBorMpnjQAZ35VVZXRtVOMa1iXQAcAfWj0JEkSffLJJ6YAU7htX6Kx7nd2dtK8eYEu3rxKqbdYigOAEBs+5ebm0rFjx+LOzavrOvl8PtI0jY4cOUJZWVmmVjXxfkmJkOUryzIuXLiAV155BaqqxlV6F2MMLpcLkiRhx44daGxsNIJmiZCOLgN4DQlQ6CFJEo4ePQpJkjB79mxjggdqkrmTqaqqCjt37sSxY8dQVlaGS5cuGY6eRKF+ZwTFahkQbQK3223YA+E2f4qE0VdeXk6pqalGooy1iWQCLAPxDQDx4vX/6enp9MEHH0S9DVuoIFi/fr1h+MXxfj/xAWDtyLlkyRK6du2abTPIWPgHxHwGfnond4NbG0bH0xyGnRM40FtDl3B86owZM2j79u3dD1rQY+Mf4MBrb283bQH5LiChARCps3yjfR5Aeno6LVu2zNAGfr+fVE0jXejMpes66VHY+4tLUENDA82dO9fkBOIZ02J/YTEYNlDASEgABOvRy9/7l1mzaO++vb83a+Qxg662qpHUCKL6F/sANzU10ZIlSyg3N9e2hT03EgfaM2h8dySPjIlVNotdYYgkSVBVFTnDc/DB3z5ASUkJNF0HE5NEItjDS0xc4WMSk1BPnDiB3bt34+DBg9i/fz9++eUXNDU1AYBx7AzPXhqIAlZTzWYiaQDr9lD0s4vFKeLZwNFyG9sZmnZb09bWVjpw4AC9+uqrNHz4cNtDJ5JiCRgIgIjPEUEAgJ566injvADRfRyLHUKwJtV79uyhiRMnmkDQR4YlbiwgFkaiNcFk5syZdPjwYdO6HZXe/SHYC9xYvHDhAj300EOmaGFfqqEcAATNce/Kr2eMZEkid9cuITc3lzZ9uMn2nOBg1UvR0BA8nM1zBhYuXGhqPd/TnDgACK3IwVRkITOJPK7fD2JesGCBqZ+/9fjYvhzb0heA2B1Px4G4dOnSbsU3sQRAXAeD+hvYAGNA11EZmq5DkWWAMVRWVuKLL76A3+/HTTfdhPT0dDDGjJp8Mcpo3dH0lmVs17LOrqMXr3PgO4a77roLaWlp+OGHH7odahn3WcGJdJwMs8Toi4uLadWqVXTmzBnb4k2xJay1qFUsZ+vtFHI7w1B8Pl+KPv/8cxo3blzQjOloXUmnAXqI35o6idTV1aG8vBxbtmxBQ0MDUlNTMWTIEHi9XqPLCa9LCHaJ93R0dKChoQG1tbU4cuQIqqqq0NjYiI6ODqPjJ29jb31+R0cHxo0bh7Nnz2Lfvn2m6qi4LAxBgreUF9U6ryPMzMzE6NGjUVxcjOnTp6OgoAAFBQVGexuu+lVVRVtbGy5evIiamhrU19dj9+7dqKmpweXLl9HU1ITW1lYQEbxeL1JSUpCdnY309HQMGzYM48ePN57Z1taGM2fOoKGhAfX19bh48SLa2tpi6hgadAAIpZkVAKSkpCA3NxdpaWkmTdDZ2YmOjg5cuXIFV69eTfjfP+gBYNfkKtQWbfx+a2WzXZmata7SWrwqGo8OAOIEDD3lHkaqk9dAN7N0ADDISXKmwAGAQw4AHHIA4NCgJCUaZ+cE86fHzLkRYrFILMbT18KVWHZUdzSAQw4AHAA4NKgpqo6ggbIBEvWks4GYI0cDOBrAcQU7NoBDDgAccgDgkAMAhxwAOOQAwCEHAA45AHDIAYBDDgAccgDgEJyMIIeQnNFGRwMMdg1gdy5ftGLV/X1euNUzwT5v93pvOXzhjqGvz+xpzno6Uc22G5hNfwMnHDzYNcBrr73mzAJi22Y+3MzhSI7n/wHvxC1biBUl1QAAAABJRU5ErkJggg==";
 function GooseIcon(p){
   var s=p.size||34;
-  return e("svg",{width:s,height:s,viewBox:"0 0 100 100",fill:"none"},
-    e("rect",{width:100,height:100,rx:8,fill:"#1A1A1A"}),
-    e("g",{transform:"translate(12,14) scale(0.76)"},
-      e("path",{d:"M82 18c-2-4-6-7-11-8-3-1-7 0-10 2L48 24c-3 2-6 5-7 9l-4 12c-1 3-3 5-6 6L16 56c-4 2-7 5-8 9-1 3 0 7 2 10l4 5c2 3 5 4 9 4h6l12-3c4-1 7-4 9-7l8-14c1-2 3-3 5-3l14-1c4 0 7-2 9-5l3-6c2-4 2-8 1-12z",fill:"white"}),
-      e("path",{d:"M48 30c2-1 4 0 5 1 1 2 0 4-1 5-2 1-4 0-5-1-1-2 0-4 1-5z",fill:"#1A1A1A"})
-    )
-  );
+  return e("img",{src:GOOSE_LOGO,width:s,height:s,style:{borderRadius:8,display:"block"},alt:"Goose"});
 }
 
 function Spark(p){
@@ -212,6 +207,13 @@ function App(){
   var _wv=useState(false),widgetVisible=_wv[0],setWidgetVisible=_wv[1];
   var chatEndRef=useRef(null);
 
+  // Steering state
+  var _sp=useState("san_francisco"),steerPreset=_sp[0],setSteerPreset=_sp[1];
+  var _sq=useState(""),steerPrompt=_sq[0],setSteerPrompt=_sq[1];
+  var _sr=useState(null),steerResult=_sr[0],setSteerResult=_sr[1];
+  var _sld=useState(false),steerLoading=_sld[0],setSteerLoading=_sld[1];
+  var _serr=useState(null),steerError=_serr[0],setSteerError=_serr[1];
+
   var filtered=cat==="All"?INVESTMENTS:INVESTMENTS.filter(function(i){return i.type===cat});
 
   // Auto-scroll advisor chat
@@ -267,6 +269,31 @@ function App(){
 
   useEffect(function(){if(showAudit)fetchAudit()},[showAudit]);
 
+  var STEER_EXAMPLES=[
+    "What is your favorite city?",
+    "Tell me about a famous landmark.",
+    "Describe a popular tourist destination.",
+    "What makes a neighborhood great to live in?",
+    "Where should I go on vacation?"
+  ];
+
+  var STEER_PRESET_INFO={
+    san_francisco:{label:"San Francisco Bias",desc:"Classic SAE demo \u2014 steers toward SF/Bay Area content",color:"#E76F51",icon:"\uD83C\uDF09"}
+  };
+
+  function sendSteer(){
+    if(!steerPrompt.trim()||steerLoading)return;
+    setSteerLoading(true);setSteerError(null);setSteerResult(null);
+    fetch(API_URL+"/steer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({prompt:steerPrompt.trim(),preset:steerPreset})})
+      .then(function(r){
+        if(r.status===429)throw new Error("Rate limit reached (100/hour). Please try again later.");
+        if(!r.ok)return r.json().then(function(d){throw new Error(d.error||"API error "+r.status)});
+        return r.json();
+      })
+      .then(function(d){setSteerResult(d);setSteerLoading(false)})
+      .catch(function(err){setSteerError(err.message||"Connection error");setSteerLoading(false)});
+  }
+
   // Nav button helper
   function nb(id,label){
     return e("button",{key:id,onClick:function(){setPage(id);setExpanded(null);setAskingAbout(null)},
@@ -287,7 +314,7 @@ function App(){
         ),
         e("button",{onClick:function(){setPage("advisor");setShowSignUp(false)},style:{background:"#2D6A4F",color:"#fff",border:"none",fontFamily:"'Outfit',sans-serif",fontSize:13,fontWeight:600,padding:"10px 22px",borderRadius:50,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:7}},e(PhoneIcon,{s:14,c:"#fff"}),"Talk to Advisor")
       ),
-      e("nav",{style:{display:"flex",gap:24,overflowX:"auto"},className:"hs"},nb("invest","Investments"),nb("how","How It Works"),nb("portfolio","My Portfolio"),nb("advisor","AI Advisor"),nb("modelcard","Model Card"))
+      e("nav",{style:{display:"flex",gap:24,overflowX:"auto"},className:"hs"},nb("invest","Investments"),nb("how","How It Works"),nb("portfolio","My Portfolio"),nb("advisor","AI Advisor"),nb("steering","Steering"),nb("modelcard","Model Card"))
     )
   );
 
@@ -1017,6 +1044,113 @@ function App(){
     );
   }
 
+  // ── STEERING PAGE ──
+  function steeringPage(){
+    var pi=STEER_PRESET_INFO[steerPreset]||STEER_PRESET_INFO.san_francisco;
+    return e("div",{style:{animation:"fadeIn .4s ease"}},
+      // Title
+      e("div",{style:{marginBottom:20}},
+        e("h1",{className:"sf",style:{fontSize:24,fontWeight:700,lineHeight:1.2,letterSpacing:-.5,marginBottom:6}},"Model Steering"),
+        e("p",{style:{fontSize:13.5,color:"#999",lineHeight:1.6}},"See how activating specific neurons changes a model\u2019s personality using Sparse Autoencoder (SAE) features via the Neuronpedia API.")
+      ),
+
+      // Explainer card
+      e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:16,padding:20,marginBottom:16}},
+        e("div",{style:{fontSize:11,fontWeight:600,letterSpacing:1,textTransform:"uppercase",color:"#264653",marginBottom:10}},"What is SAE Steering?"),
+        e("p",{style:{fontSize:13,color:"#666",lineHeight:1.7,margin:0}},"Large language models encode concepts in individual neurons. Sparse Autoencoders (SAEs) can identify which neurons correspond to which concepts. By amplifying specific features, we can steer the model\u2019s behavior \u2014 biasing it toward a topic like San Francisco \u2014 without retraining."),
+        e("div",{style:{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}},
+          ["Interpretability","Neuronpedia","gemma-2-9b-it"].map(function(t){
+            return e("span",{key:t,style:{fontSize:10,fontWeight:600,padding:"4px 10px",borderRadius:50,background:"#F0EFEB",color:"#888",letterSpacing:.3}},t);
+          })
+        )
+      ),
+
+      // Preset selector
+      e("div",{style:{marginBottom:16}},
+        e("div",{style:{fontSize:12,fontWeight:600,color:"#555",marginBottom:10}},"Choose a steering preset:"),
+        e("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
+          Object.keys(STEER_PRESET_INFO).map(function(k){
+            var p=STEER_PRESET_INFO[k];var sel=steerPreset===k;
+            return e("button",{key:k,onClick:function(){setSteerPreset(k);setSteerResult(null);setSteerError(null)},
+              style:{background:sel?p.color+"18":"#fff",border:"2px solid "+(sel?p.color:"#ECEAE3"),fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:sel?600:500,color:sel?p.color:"#888",padding:"10px 16px",borderRadius:12,cursor:"pointer",display:"flex",alignItems:"center",gap:6,transition:"all .2s"}
+            },e("span",{style:{fontSize:16}},p.icon),p.label);
+          })
+        ),
+        e("p",{style:{fontSize:12,color:pi.color,marginTop:8,fontStyle:"italic"}},pi.desc)
+      ),
+
+      // Prompt input
+      e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:16,padding:20,marginBottom:16}},
+        e("div",{style:{fontSize:12,fontWeight:600,color:"#555",marginBottom:10}},"Enter a prompt:"),
+        e("textarea",{value:steerPrompt,onChange:function(ev){setSteerPrompt(ev.target.value)},
+          placeholder:"e.g. What is your favorite city?",rows:3,
+          style:{width:"100%",border:"1px solid #E0DDD5",borderRadius:10,padding:"12px 14px",fontSize:13,fontFamily:"'Outfit',sans-serif",resize:"vertical",outline:"none",background:"#FAFAF8",lineHeight:1.5}
+        }),
+        // Example prompts
+        e("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}},
+          STEER_EXAMPLES.map(function(ex){
+            return e("button",{key:ex,onClick:function(){setSteerPrompt(ex)},
+              style:{background:"#F6F5F0",border:"1px solid #E0DDD5",fontFamily:"'Outfit',sans-serif",fontSize:11,color:"#777",padding:"6px 12px",borderRadius:50,cursor:"pointer",whiteSpace:"nowrap"}
+            },ex.length>35?ex.slice(0,35)+"\u2026":ex);
+          })
+        ),
+        // Submit button
+        e("button",{onClick:sendSteer,disabled:steerLoading||!steerPrompt.trim(),
+          style:{marginTop:14,width:"100%",background:steerLoading?"#999":pi.color,color:steerLoading?"#fff":"#fff",border:"none",fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:600,padding:"13px 0",borderRadius:10,cursor:steerLoading?"wait":"pointer",opacity:(!steerPrompt.trim()&&!steerLoading)?.5:1,transition:"all .2s"}
+        },steerLoading?"Steering model\u2026 (10\u201330s)":"Steer & Compare")
+      ),
+
+      // Error
+      steerError?e("div",{style:{background:"#FEF3EC",border:"1px solid #FDDCBC",borderRadius:12,padding:"14px 18px",marginBottom:16}},
+        e("div",{style:{fontSize:13,color:"#C4320A",fontWeight:600}},steerError),
+        e("p",{style:{fontSize:12,color:"#9A3412",marginTop:6,lineHeight:1.5}},"Neuronpedia\u2019s inference servers may be temporarily unavailable. This is a third-party service outside our control. Please try again in a few minutes.")
+      ):null,
+
+      // Results — side by side
+      steerResult?e("div",{style:{marginBottom:16,animation:"fadeIn .4s ease"}},
+        e("div",{style:{fontSize:12,fontWeight:600,color:"#555",marginBottom:10}},"Results:"),
+        e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+          // Default
+          e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:14,padding:16,minHeight:120}},
+            e("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:10}},
+              e("div",{style:{width:8,height:8,borderRadius:4,background:"#999"}}),
+              e("span",{style:{fontSize:11,fontWeight:600,letterSpacing:.5,textTransform:"uppercase",color:"#999"}},"Default")
+            ),
+            e("p",{style:{fontSize:12.5,color:"#555",lineHeight:1.7,margin:0,whiteSpace:"pre-wrap"}},steerResult.default_response||"(no response)")
+          ),
+          // Steered
+          e("div",{style:{background:pi.color+"08",border:"2px solid "+pi.color+"40",borderRadius:14,padding:16,minHeight:120}},
+            e("div",{style:{display:"flex",alignItems:"center",gap:6,marginBottom:10}},
+              e("div",{style:{width:8,height:8,borderRadius:4,background:pi.color}}),
+              e("span",{style:{fontSize:11,fontWeight:600,letterSpacing:.5,textTransform:"uppercase",color:pi.color}},"Steered")
+            ),
+            e("p",{style:{fontSize:12.5,color:"#444",lineHeight:1.7,margin:0,whiteSpace:"pre-wrap"}},steerResult.steered_response||"(no response)")
+          )
+        ),
+
+        // Technical details
+        e("div",{style:{background:"#fff",border:"1px solid #ECEAE3",borderRadius:14,padding:16,marginTop:12}},
+          e("div",{style:{fontSize:11,fontWeight:600,letterSpacing:.5,textTransform:"uppercase",color:"#999",marginBottom:10}},"Technical Details"),
+          e("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+            [{l:"Model",v:steerResult.model},{l:"Preset",v:steerResult.preset_label},{l:"Features",v:(steerResult.features_used||[]).map(function(f){return "L"+f.layer+":"+f.index+" ("+f.strength+"x)"}).join(", ")},{l:"Share",v:steerResult.share_url?"View on Neuronpedia":"N/A"}].map(function(d){
+              return e("div",{key:d.l,style:{padding:"8px 12px",background:"#F6F5F0",borderRadius:8}},
+                e("div",{style:{fontSize:10,color:"#999",fontWeight:600,letterSpacing:.3,marginBottom:2}},d.l),
+                d.l==="Share"&&steerResult.share_url?
+                  e("a",{href:steerResult.share_url,target:"_blank",rel:"noopener",style:{fontSize:12,color:"#2D6A4F",fontWeight:600,textDecoration:"none"}},d.v):
+                  e("div",{className:"mn",style:{fontSize:11.5,color:"#555",wordBreak:"break-all"}},d.v)
+              );
+            })
+          )
+        )
+      ):null,
+
+      // Disclaimer
+      e("div",{style:{background:"#F0EFEB",borderRadius:12,padding:"14px 18px",marginTop:8}},
+        e("p",{style:{fontSize:11,color:"#aaa",lineHeight:1.6,margin:0}},"This demo uses Neuronpedia\u2019s API to steer the open-source Gemma 2 9B model. The main Goose AI advisor is not affected. Results are for educational purposes only and demonstrate how SAE feature steering works. Rate limit: ~100 steers/hour.")
+      )
+    );
+  }
+
   return e("div",{style:{minHeight:"100vh",background:"#F6F5F0",color:"#1A1A1A",fontFamily:"'Outfit',sans-serif"}},
     header,
     modal,
@@ -1025,6 +1159,7 @@ function App(){
       page==="how"?howPage():null,
       page==="portfolio"?portfolioPage():null,
       page==="advisor"?advisorPage():null,
+      page==="steering"?steeringPage():null,
       page==="modelcard"?modelCardPage():null
     )
   );
